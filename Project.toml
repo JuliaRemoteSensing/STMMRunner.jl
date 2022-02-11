@@ -1,0 +1,13 @@
+name = "STMMRunner"
+uuid = "5a832f93-9be3-4627-b47e-d2e960387a5d"
+authors = ["Gabriel Wu <wuzihua@pku.edu.cn> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.7"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
