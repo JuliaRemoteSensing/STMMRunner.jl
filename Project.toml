@@ -3,6 +3,14 @@ uuid = "5a832f93-9be3-4627-b47e-d2e960387a5d"
 authors = ["Gabriel Wu <wuzihua@pku.edu.cn> and contributors"]
 version = "0.1.0"
 
+[deps]
+Configurations = "5218b696-f38b-4ac9-8b61-a12ec717816d"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+GMT = "5752ebe1-31b9-557e-87aa-f909b540aa54"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+
 [compat]
 julia = "1.7"
 

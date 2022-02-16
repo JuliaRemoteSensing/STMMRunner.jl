@@ -2,3 +2,7 @@
 *.jl.cov
 *.jl.mem
 /docs/build/
+mstm_*
+/*.jl
+/notebooks/*
+!/notebooks/*.jl

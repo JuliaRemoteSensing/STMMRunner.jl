@@ -1,5 +1,6 @@
 module STMMRunner
 
-# Write your package code here.
+include("param.jl")
+include("MSTM.jl")
 
 end
