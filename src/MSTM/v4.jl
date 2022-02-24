@@ -441,7 +441,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 push!(sz, v[3])
                 push!(r, v[4])
             end
-            spheres = DataFrame(; x = sz, y = sx, z = sy, r)
+            spheres = DataFrame(; x = sx, y = sy, z = sz, r)
 
             Nb = read_ints(nf[Ns+4])[1]
             Nx, Ny, Nz = read_ints(nf[Ns+Nb+7])

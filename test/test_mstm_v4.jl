@@ -78,9 +78,12 @@
         end
     end
 
-    for path in readdir()
-        if isdir(path) && occursin("mstm_tmp", path)
-            rm(path; force = true, recursive = true)
+    try
+        for path in readdir()
+            if isdir(path) && occursin("mstm_tmp", path)
+                rm(path; force = true, recursive = true)
+            end
         end
+    catch _ # The unlink operation might fail on Windows so we need this try-catch
     end
 end
