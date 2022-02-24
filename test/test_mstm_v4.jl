@@ -5,7 +5,7 @@
     sphere1 = Sphere(r = 1.0, x = 4.2, y = 4.3, z = 4.0, m = 1.5)
     sphere2 = Sphere(r = 1.0, x = 0.0, y = 0.3, z = 1.0, m = 1.5)
 
-    spheres = [sphere1, sphere2, sphere3, sphere4]
+    spheres = [sphere1, sphere2]
     layers = [Layer(), Layer(d = 10.0, m = 2.0), Layer(m = 1.2)]
 
     base = STMMConfig(
