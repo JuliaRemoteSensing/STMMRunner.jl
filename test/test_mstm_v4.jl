@@ -36,6 +36,11 @@
             @test !isnothing(run_mstm(param; keep = true))
         end
 
+        @testset "No layer boundaries, scattering_map_model = 0, frame = incident, use_fft = true" begin
+            param = STMMConfig(fixed_base; use_fft_translation = true)
+            @test !isnothing(run_mstm(param; keep = true))
+        end
+
         @testset "No layer boundaries, scattering_map_model = 0, frame = target" begin
             param = STMMConfig(fixed_base; frame = TargetFrame)
             @test !isnothing(run_mstm(param; keep = true))

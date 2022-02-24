@@ -143,6 +143,22 @@ $(join(map(format_sphere, cfg.spheres),"\n"))
 end_of_sphere_data"""
 end
 
+function format_fft_options(cfg::STMMConfig)
+    if !cfg.use_fft_translation
+        return "fft_translation_option\nfalse"
+    else
+        return """
+        fft_translation_option
+        true
+        min_fft_nsphere
+        $(length(cfg.spheres))
+        cell_volume_fraction
+        $(cfg.cell_volume_fraction)
+        node_order
+        $(cfg.node_order)"""
+    end
+end
+
 # FIXME Optically active layers are not supported in MSTM v4 yet.
 # See https://github.com/dmckwski/MSTM/issues/6
 function format_layers(cfg::STMMConfig)::String
@@ -203,44 +219,45 @@ end
 # We set `print_sphere_data` to `false` since we do not need them.
 function write_input(cfg::STMMConfig)
     inp = """
-$(format_spheres(cfg))
-$(format_layers(cfg))
-output_file
-$(cfg.output_file)
-print_sphere_data
-false
-mie_epsilon
-$(cfg.mie_epsilon)
-translation_epsilon
-$(cfg.translation_epsilon)
-solution_epsilon
-$(cfg.solution_epsilon)
-max_iterations
-$(cfg.max_iterations)
-max_t_matrix_order
-$(cfg.max_t_matrix_order)
-store_translation_matrix
-$(cfg.store_translation_matrix)
-$(format_orientation(cfg))
-$(format_near_field(cfg))
-incident_frame
-$(cfg.frame == IncidentFrame)
-normalize_s11
-$(cfg.normalize_scattering_matrix)
-gaussian_beam_constant
-$(cfg.gaussian_beam_constant)
-gaussian_beam_focal_point
-$(@sprintf("(%.4e,%.4e,%.4e)", cfg.gaussian_beam_focal_point...))
-calculate_scattering_matrix
-$(cfg.calculate_scattering_matrix)
-scattering_map_model
-$(cfg.scattering_map_model)
-scattering_map_increment
-$(cfg.Δθ)
-scattering_map_dimension
-$(cfg.scattering_map_dimension)
-end_of_options
-"""
+    $(format_spheres(cfg))
+    $(format_layers(cfg))
+    output_file
+    $(cfg.output_file)
+    print_sphere_data
+    false
+    mie_epsilon
+    $(cfg.mie_epsilon)
+    translation_epsilon
+    $(cfg.translation_epsilon)
+    solution_epsilon
+    $(cfg.solution_epsilon)
+    max_iterations
+    $(cfg.max_iterations)
+    max_t_matrix_order
+    $(cfg.max_t_matrix_order)
+    store_translation_matrix
+    $(cfg.store_translation_matrix)
+    $(format_fft_options(cfg))
+    $(format_orientation(cfg))
+    $(format_near_field(cfg))
+    incident_frame
+    $(cfg.frame == IncidentFrame)
+    normalize_s11
+    $(cfg.normalize_scattering_matrix)
+    gaussian_beam_constant
+    $(cfg.gaussian_beam_constant)
+    gaussian_beam_focal_point
+    $(@sprintf("(%.4e,%.4e,%.4e)", cfg.gaussian_beam_focal_point...))
+    calculate_scattering_matrix
+    $(cfg.calculate_scattering_matrix)
+    scattering_map_model
+    $(cfg.scattering_map_model)
+    scattering_map_increment
+    $(cfg.Δθ)
+    scattering_map_dimension
+    $(cfg.scattering_map_dimension)
+    end_of_options
+    """
 
     open("mstm.inp", "w") do io
         write(io, inp)

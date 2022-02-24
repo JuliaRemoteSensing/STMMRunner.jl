@@ -215,6 +215,33 @@ Base.@kwdef struct STMMConfig
     """
     scattering_coefficient_file::String = "mstm.scat"
 
+    "[**MSTM v4**] Whether or not to use the FFT-based accelerated algorithm. Default is `false`."
+    use_fft_translation::Bool = false
+
+    """
+    [**MSTM v4**]
+    This determines the grid size ``d`` of the cubic lattice used in the algorithm. The
+    formula is:
+
+    ```math
+    d=\\left(\\frac{V_S}{cN_{s,ext}}\\right)^{1/3}
+    ```
+
+    where ``V_S`` is the dimensionless total volume of the external spheres and ``c`` is `cell_volume_fraction`.
+    The optimum value is usually where the total number of nodes is close to the total number of external
+    spheres NS,ext. Setting `cell_volume_fraction = 0` will automate the setting of d using an estimate of
+    the sphere volume fraction. Default is `0.0`. Works only when `use_fft_translation = true`.
+    """
+    cell_volume_fraction::Float64 = 0.0
+
+    """
+    [**MSTM v4**]
+    Truncation degree for the node–based expansions of the scattered field. Set
+    `node_order = −L`, where `L` is a positive integer, will set the node order to `ceil(d) + L`.
+    Default is `-1`. Works only when `use_fft_translation = true`.
+    """
+    node_order::Int = -1
+
     """
     [**MSTM v4**] `= 0` will have the scattering matrix printed at a range of polar angles
     (θ), with angular increment given in degrees by `Δθ`. The scattering plane
