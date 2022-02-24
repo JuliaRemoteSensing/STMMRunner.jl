@@ -1,4 +1,6 @@
 @testset "Test MSTM v4" begin
+    TEMPORARY_TEST_DIR = "test_mstm_v4"
+
     using STMMRunner
     using STMMRunner.MSTM.V4
 
@@ -11,7 +13,7 @@
     base = STMMConfig(
         number_processors = Sys.CPU_THREADS ÷ 2,
         run_print_file = "",
-        working_directory = "",
+        working_directory = TEMPORARY_TEST_DIR,
         scattering_map_model = 0,
         α = 5.0,
         β = 12.0,
@@ -78,4 +80,6 @@
             @test !isnothing(run_mstm(param))
         end
     end
+
+    rm(TEMPORARY_TEST_DIR; force = true, recursive = true)
 end
