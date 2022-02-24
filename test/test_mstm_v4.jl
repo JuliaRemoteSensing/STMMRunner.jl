@@ -4,8 +4,6 @@
 
     sphere1 = Sphere(r = 1.0, x = 4.2, y = 4.3, z = 4.0, m = 1.5)
     sphere2 = Sphere(r = 1.0, x = 0.0, y = 0.3, z = 1.0, m = 1.5)
-    sphere3 = Sphere(r = 1.0, x = -3.0, y = 0.3, z = 1.0, m = 1.8 + 0.01im)
-    sphere4 = Sphere(r = 1.0, x = 0.0, y = 8.3, z = 1.0, m = 2.8 + 0.01im)
 
     spheres = [sphere1, sphere2, sphere3, sphere4]
     layers = [Layer(), Layer(d = 10.0, m = 2.0), Layer(m = 1.2)]
