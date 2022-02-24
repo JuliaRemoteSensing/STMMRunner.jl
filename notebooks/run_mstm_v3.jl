@@ -9,12 +9,11 @@ begin
     import Pkg
     Pkg.activate("..")
 
-    import Configurations: from_dict
     import GMT
 
     using DelimitedFiles
     using STMMRunner
-    using STMMRunner.MSTM
+    using STMMRunner.MSTM.V3
 end
 
 # ╔═╡ 9e0a299f-9c69-4cb1-8de7-62116eb4e404
@@ -26,33 +25,32 @@ begin
             for k = -6.0:3.0:6.0
                 push!(
                     spheres,
-                    STMMRunner.Sphere(
-                        radius = 0.7 + 0.5 * rand(),
-                        center = [i, j, k],
-                        real_ref_index = 1.5,
-                        imag_ref_index = rand(),
+                    Sphere(
+                        r = 0.7 + 0.5 * rand(),
+                        x = i,
+						y = j,
+						z = k,
+                        m = 1.5 + 1.0im * rand()
                     ),
                 )
             end
         end
     end
 
-    param = from_dict(
-        STMMRunner.STMMConfig,
-        Dict(
-            "number_processors" => Sys.CPU_THREADS ÷ 2,
-            "sm_number_processors" => Sys.CPU_THREADS ÷ 2,
-            "run_print_file" => "",
-            "working_directory" => "",
-            "near_field_plane_position" => 0.0,
-            "near_field_plane_coord" => 1,
-            "near_field_output_data" => 2,
-            "spacial_step_size" => 0.1,
-            "orientation" => "fixed",
-            "spheres" => spheres,
-        ),
-    )
-
+   param = STMMConfig(
+	    number_processors = Sys.CPU_THREADS ÷ 2,
+	    sm_number_processors = Sys.CPU_THREADS ÷ 2,
+	    run_print_file = "",
+	    working_directory = "",
+	    orientation = FixedOrientation,
+	    α = 70.0,
+	    calculate_near_field = true,
+	    near_field_plane_position = 0.0,
+	    near_field_plane_vertices = (5.0, 5.0),
+	    near_field_plane_coord = 1,
+	    near_field_step_size = 0.1,
+	    spheres = spheres,
+	)
 end
 
 # ╔═╡ 4f69842a-3658-4345-a6ce-8dcd0c20c564
@@ -66,7 +64,7 @@ let
     sp = results.near_field.spheres
 
     grd = GMT.xyz2grd(
-        [nf.y nf.z nf.Exᵣ],
+        [nf.y nf.z real.(nf.Ex)],
         region = (first(y), last(y), first(z), last(z)),
         inc = "$(y[2]-y[1])/$(z[2]-z[1])",
     )
@@ -84,10 +82,10 @@ end
 # ╔═╡ 048f7096-6da0-445d-b690-69224bc67276
 let
     spheres = param.spheres
-    x = map(s -> s.center[1], spheres)
-    y = map(s -> s.center[2], spheres)
-    z = map(s -> s.center[3], spheres)
-    r = map(s -> s.radius, spheres)
+    x = map(s -> s.x, spheres)
+    y = map(s -> s.y, spheres)
+    z = map(s -> s.z, spheres)
+    r = map(s -> s.r, spheres)
     GMT.plot3d(
         [x y z fill(-20, length(x)) r 2r];
         symbol = "e",

@@ -377,15 +377,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 x, y, z = X, Y, Z
             end
 
-            if cfg.near_field_output_data == 0
-                field = DataFrame(; x, y, z, E²)
-            elseif cfg.near_field_output_data == 1
-                field = DataFrame(; x, y, z, Ex, Ey, Ez)
-            else
-                @assert cfg.near_field_output_data == 2
-                field = DataFrame(; x, y, z, Ex, Ey, Ez, Hx, Hy, Hz)
-            end
-
+            field = DataFrame(; x, y, z, Ex, Ey, Ez, Hx, Hy, Hz)
             near_field = NearField(spheres, field)
         else
             near_field = nothing
