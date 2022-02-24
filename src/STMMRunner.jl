@@ -1,6 +1,6 @@
 module STMMRunner
 
 include("param.jl")
-include("MSTM.jl")
+include("MSTM/MSTM.jl")
 
 end

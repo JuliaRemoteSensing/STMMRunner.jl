@@ -2,5 +2,5 @@ using STMMRunner
 using Test
 
 @testset "STMMRunner.jl" begin
-    # Write your tests here.
+    include("test_mstm_v4.jl")
 end

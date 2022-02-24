@@ -1,9 +1,10 @@
-module MSTM
+module V3
 
 using DataFrames
+using DocStringExtensions
 using Printf
 using UUIDs
-import ..STMMRunner: SphereConfig, STMMConfig
+using ...STMMRunner
 export run_mstm
 
 abstract type MSTMOutput end
@@ -38,7 +39,15 @@ struct MSTMRandomOutput <: MSTMOutput
     t_matrix::Union{DataFrame,Nothing}
 end
 
-function run_mstm(cfg::STMMConfig; keep::Bool = false)
+"""
+Use the given configuration to run MSTM v3.
+
+$(SIGNATURES)
+
+- If `keep = true`, the working directory will not be removed after the run. 
+- `mstm_exe_name` specifies the name or path of your compiled MSTM v3 executable.
+"""
+function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "mstm3")
     current_dir = pwd()
 
     id = string(uuid1())
@@ -62,11 +71,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         write_input(cfg)
 
         @debug "[Run MSTM] Running MSTM..."
-        if cfg.number_processors == 1
-            run(`mstm`)
-        else
-            run(`mpirun -np $(cfg.number_processors) mstm`)
-        end
+        run(`mpiexec -n $(cfg.number_processors) $(mstm_exe_name)`)
 
         @debug "[Run MSTM] Collecting MSTM output"
         results = collect_output(cfg)
@@ -87,57 +92,37 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
     end
 end
 
-function format_sphere(sphere::SphereConfig)::String
-    radius_and_center =
-        @sprintf "%.4e %.4e %.4e %.4e " sphere.radius sphere.center[1] sphere.center[2] sphere.center[3]
+function format_sphere(sphere::Sphere)::String
+    radius_and_center = @sprintf "%.4e %.4e %.4e %.4e " sphere.r sphere.x sphere.y sphere.z
 
-    if !isnothing(sphere.t_matrix)
+    if !isempty(sphere.t_matrix)
         return radius_and_center * sphere.t_matrix
-    elseif !isnothing(sphere.real_ref_index)
-        radius_center_ref =
-            radius_and_center *
-            (@sprintf "%.4e %.4e " sphere.real_ref_index sphere.imag_ref_index)
-        if !isnothing(sphere.real_chiral_factor)
-            return radius_center_ref *
-                   (@sprintf "%.4e %.4e " sphere.real_chiral_factor sphere.imag_chiral_factor)
-        else
-            return radius_center_ref
-        end
     else
-        return radius_and_center
+        return radius_and_center *
+               (@sprintf "%.4e %.4e %.4e %.4e" sphere.m.re sphere.m.im sphere.β.re sphere.β.im)
     end
 end
 
+# We set `write_sphere_data` to `0` since we do not need them.
+# We set `near_field_output_data` to `2` (the full set).
 function write_input(cfg::STMMConfig)
     inp = """
 number_spheres
 $(length(cfg.spheres))
 output_file
 $(cfg.output_file)
-append_output_file
-0
 run_print_file
 $(cfg.run_print_file)
 write_sphere_data
-$(cfg.write_sphere_data ? 1 : 0)
-length_scale_factor
-$(cfg.length_scale_factor)
-real_ref_index_scale_factor
-$(cfg.real_ref_index_scale_factor)
-imag_ref_index_scale_factor
-$(cfg.imag_ref_index_scale_factor)
-real_chiral_factor
-$(cfg.real_chiral_factor)
-imag_chiral_factor
-$(cfg.imag_chiral_factor)
+0
 medium_real_ref_index
-$(cfg.medium_real_ref_index)
+$(cfg.layers[1].m.re)
 medium_imag_ref_index
-$(cfg.medium_imag_ref_index)
+$(cfg.layers[1].m.im)
 medium_real_chiral_factor
-$(cfg.medium_real_chiral_factor)
+$(cfg.layers[1].β.re)
 medium_imag_chiral_factor
-$(cfg.medium_imag_chiral_factor)
+$(cfg.layers[1].β.im)
 target_euler_angles_deg
 $(join(cfg.target_euler_angles_deg, ","))
 mie_epsilon
@@ -147,49 +132,49 @@ $(cfg.translation_epsilon)
 solution_epsilon
 $(cfg.solution_epsilon)
 max_number_iterations
-$(cfg.max_number_iterations)
+$(cfg.max_iterations)
 store_translation_matrix
-$(cfg.store_translation_matrix ? 1 : 0)
+$(Int(cfg.store_translation_matrix))
 sm_number_processors
 $(cfg.sm_number_processors)
-near_field_distance
-$(cfg.near_field_distance)
+near_field_translation_distance
+$(cfg.near_field_translation_distance)
 iterations_per_correction
 $(cfg.iterations_per_correction)
 min_scattering_angle_deg
-$(cfg.θₘᵢₙ)
+$(cfg.θ_min)
 max_scattering_angle_deg
-$(cfg.θₘₐₓ)
+$(cfg.θ_max)
 min_scattering_plane_angle_deg
-$(cfg.ϕₘᵢₙ)
+$(cfg.ϕ_min)
 max_scattering_plane_angle_deg
-$(cfg.ϕₘₐₓ)
+$(cfg.ϕ_max)
 delta_scattering_angle_deg
 $(cfg.Δθ)
 incident_or_target_frame
-$(cfg.frame == "incident" ? 0 : 1)
+$(Int(cfg.frame))
 normalize_scattering_matrix
-$(cfg.normalize_scattering_matrix ? 1 : 0)
+$(Int(cfg.normalize_scattering_matrix))
 azimuth_average_scattering_matrix
-$(cfg.azimuth_average_scattering_matrix ? 1 : 0)
+$(Int(cfg.azimuthal_average))
 gaussian_beam_constant
 $(cfg.gaussian_beam_constant)
 gaussian_beam_focal_point
 $(join(cfg.gaussian_beam_focal_point, ","))
 fixed_or_random_orientation
-$(cfg.orientation == "fixed" ? 0 : 1)
+$(Int(cfg.orientation))
 incident_azimuth_angle_deg
-$(cfg.incident_azimuth_angle_deg)
+$(cfg.α)
 incident_polar_angle_deg
-$(cfg.incident_polar_angle_deg)
+$(cfg.β)
 calculate_scattering_coefficients
-$(cfg.calculate_scattering_coefficients ? 1 : 0)
+$(Int(cfg.calculate_scattering_coefficients))
 scattering_coefficient_file
 $(cfg.scattering_coefficient_file)
 track_iterations
-$(cfg.track_iterations ? 1 : 0)
+$(Int(cfg.track_iterations))
 calculate_near_field
-$(cfg.calculate_near_field ? 1 : 0)
+$(Int(cfg.calculate_near_field))
 near_field_plane_coord
 $(cfg.near_field_plane_coord)
 near_field_plane_position
@@ -197,21 +182,21 @@ $(cfg.near_field_plane_position)
 near_field_plane_vertices
 $(join(cfg.near_field_plane_vertices, ","))
 spacial_step_size
-$(cfg.spacial_step_size)
+$(cfg.near_field_step_size)
 polarization_angle_deg
 $(cfg.polarization_angle_deg)
 near_field_output_file
 $(cfg.near_field_output_file)
 near_field_output_data
-$(cfg.near_field_output_data)
+2
 plane_wave_epsilon
 $(cfg.plane_wave_epsilon)
 calculate_t_matrix
-$(cfg.calculate_t_matrix ? 1 : 0)
+$(Int(cfg.calculate_t_matrix))
 t_matrix_file
 $(cfg.t_matrix_file)
 t_matrix_convergence_epsilon
-$(cfg.t_matrix_convergence_epsilon)
+$(cfg.t_matrix_epsilon)
 sphere_sizes_and_positions
 $(join(map(format_sphere, cfg.spheres),"\n"))
 end_of_options
@@ -236,7 +221,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
     out = split(read(open(cfg.output_file), String), "\n")
     i = 1
 
-    if cfg.orientation == "fixed"
+    if cfg.orientation == FixedOrientation
         q = zeros(10)
     else
         q = zeros(4)
@@ -268,10 +253,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
     # Skip header
     i += 2
 
-    # Skip sphere information
-    i += length(cfg.spheres) + 1
-
-    if cfg.orientation == "fixed"
+    if cfg.orientation == FixedOrientation
         # Fixed orientation
 
         # Read unpolarized efficiencies
@@ -287,7 +269,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         i += 4
 
         # Read scattering matrix
-        has_phi = !cfg.azimuth_average_scattering_matrix
+        has_phi = !cfg.azimuthal_average
         while !isempty(out[i])
             v = read_floats(out[i])
             i += 1
@@ -330,7 +312,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44,
+            s44
         )
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
@@ -362,18 +344,12 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
             # Read near field data
             E² = Float64[]
-            Exᵣ = Float64[]
-            Exᵢ = Float64[]
-            Eyᵣ = Float64[]
-            Eyᵢ = Float64[]
-            Ezᵣ = Float64[]
-            Ezᵢ = Float64[]
-            Hxᵣ = Float64[]
-            Hxᵢ = Float64[]
-            Hyᵣ = Float64[]
-            Hyᵢ = Float64[]
-            Hzᵣ = Float64[]
-            Hzᵢ = Float64[]
+            Ex = ComplexF64[]
+            Ey = ComplexF64[]
+            Ez = ComplexF64[]
+            Hx = ComplexF64[]
+            Hy = ComplexF64[]
+            Hz = ComplexF64[]
             X = Float64[]
             Y = Float64[]
             Z = fill(cfg.near_field_plane_position, Nx * Ny)
@@ -382,25 +358,14 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
                 push!(X, v[1])
                 push!(Y, v[2])
-                if cfg.near_field_output_data == 0
-                    push!(E², v[3])
-                else
-                    push!(Exᵣ, v[3])
-                    push!(Exᵢ, v[4])
-                    push!(Eyᵣ, v[5])
-                    push!(Eyᵢ, v[6])
-                    push!(Ezᵣ, v[7])
-                    push!(Ezᵢ, v[8])
 
-                    if cfg.near_field_output_data == 2
-                        push!(Hxᵣ, v[9])
-                        push!(Hxᵢ, v[10])
-                        push!(Hyᵣ, v[11])
-                        push!(Hyᵢ, v[12])
-                        push!(Hzᵣ, v[13])
-                        push!(Hzᵢ, v[14])
-                    end
-                end
+                push!(Ex, complex(v[3], v[4]))
+                push!(Ey, complex(v[5], v[6]))
+                push!(Ez, complex(v[7], v[8]))
+
+                push!(Hx, complex(v[9], v[10]))
+                push!(Hy, complex(v[11], v[12]))
+                push!(Hz, complex(v[13], v[14]))
             end
 
             if cfg.near_field_plane_coord == 1
@@ -415,26 +380,10 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             if cfg.near_field_output_data == 0
                 field = DataFrame(; x, y, z, E²)
             elseif cfg.near_field_output_data == 1
-                field = DataFrame(; x, y, z, Exᵣ, Exᵢ, Eyᵣ, Eyᵢ, Ezᵣ, Ezᵢ)
+                field = DataFrame(; x, y, z, Ex, Ey, Ez)
             else
                 @assert cfg.near_field_output_data == 2
-                field = DataFrame(;
-                    x,
-                    y,
-                    z,
-                    Exᵣ,
-                    Exᵢ,
-                    Eyᵣ,
-                    Eyᵢ,
-                    Ezᵣ,
-                    Ezᵢ,
-                    Hxᵣ,
-                    Hxᵢ,
-                    Hyᵣ,
-                    Hyᵢ,
-                    Hzᵣ,
-                    Hzᵢ,
-                )
+                field = DataFrame(; x, y, z, Ex, Ey, Ez, Hx, Hy, Hz)
             end
 
             near_field = NearField(spheres, field)
@@ -451,7 +400,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         i += 3
 
         # Read scattering matrix
-        Nθ = Int(round((cfg.θₘₐₓ - cfg.θₘᵢₙ) / cfg.Δθ)) + 1
+        Nθ = Int(round((cfg.θ_max - cfg.θ_min) / cfg.Δθ)) + 1
         for j = 1:Nθ
             v = read_floats(out[i+j])
 
@@ -494,7 +443,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44,
+            s44
         )
         i += Nθ + 3
 
