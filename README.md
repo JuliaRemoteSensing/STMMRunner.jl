@@ -15,7 +15,7 @@ Currently supported STMM models:
 - [MSTM v3](https://www.eng.auburn.edu/~dmckwski/scatcodes/)
   - You **need** to compile a parallel version of MSTM v3.
 
-Working in process:
+Working in progress:
 
 - [FaSTMM](https://bitbucket.org/planetarysystemresearch/fastmm_v1.0)
 - [CELES](https://github.com/disordered-photonics/celes.git)
