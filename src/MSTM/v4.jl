@@ -83,6 +83,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         dir = cfg.working_directory
     end
     results = nothing
+    proc = nothing
 
     try
         if !ispath(dir)
@@ -99,7 +100,12 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         # We cannot simply do `$(mpiexec()) ... $(mstm())` here due to the limit of Cmd interpolation.
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
-        run(setenv(`$(mpiexec().exec[1]) -n 8 $(mstm().exec[1])`, mstm().env))
+        proc = open(
+            setenv(`$(mpiexec().exec[1]) -n 8 $(mstm().exec[1])`, mstm().env),
+            stdout;
+            write = true,
+        )
+        wait(proc)
 
         @debug "[Run MSTM] Collecting MSTM output"
         results = collect_output(cfg)
@@ -109,6 +115,15 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
     finally
         @debug "[Run MSTM] Leaving working directory"
         cd(current_dir)
+
+        if !isnothing(proc)
+            @debug "[Run MSTM] Killing MSTM process"
+            kill(proc)
+            sleep(0.2)
+            if process_running(proc)
+                @warn "Failed to kill, please retry manually."
+            end
+        end
 
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
@@ -223,6 +238,8 @@ function write_input(cfg::STMMConfig)
     $(format_layers(cfg))
     output_file
     $(cfg.output_file)
+    run_file
+    $(cfg.run_print_file)
     print_sphere_data
     false
     mie_epsilon
@@ -231,6 +248,8 @@ function write_input(cfg::STMMConfig)
     $(cfg.translation_epsilon)
     solution_epsilon
     $(cfg.solution_epsilon)
+    t_matrix_convergence_epsilon
+    $(cfg.t_matrix_epsilon)
     max_iterations
     $(cfg.max_iterations)
     max_t_matrix_order
@@ -417,7 +436,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type
+                type,
             )
         else
             scattering_matrix = DataFrame(;
@@ -439,7 +458,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type
+                type,
             )
         end
 
@@ -514,7 +533,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 Hy₌,
                 Hy⊥,
                 Hz₌,
-                Hz⊥
+                Hz⊥,
             )
 
             near_field = NearField(spheres, field)

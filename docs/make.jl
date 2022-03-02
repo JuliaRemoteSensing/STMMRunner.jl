@@ -11,9 +11,14 @@ makedocs(;
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://JuliaRemoteSensing.github.io/STMMRunner.jl",
-        assets = String[]
+        assets = String[],
     ),
-    pages = ["Home" => "index.md", "Configurations" => "config.md", "MSTM v4" => "mstmv4.md", "MSTM v3" => "mstmv3.md"]
+    pages = [
+        "Home" => "index.md",
+        "Configurations" => "config.md",
+        "MSTM v4" => "mstmv4.md",
+        "MSTM v3" => "mstmv3.md",
+    ],
 )
 
 deploydocs(; repo = "github.com/JuliaRemoteSensing/STMMRunner.jl", devbranch = "main")

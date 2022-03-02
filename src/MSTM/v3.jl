@@ -57,6 +57,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         dir = cfg.working_directory
     end
     results = nothing
+    proc = nothing
 
     try
         if !ispath(dir)
@@ -71,7 +72,12 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         write_input(cfg)
 
         @debug "[Run MSTM] Running MSTM..."
-        run(`mpiexec -n $(cfg.number_processors) $(mstm_exe_name)`)
+        proc = open(
+            `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)`,
+            stdout;
+            write = true,
+        )
+        wait(proc)
 
         @debug "[Run MSTM] Collecting MSTM output"
         results = collect_output(cfg)
@@ -81,6 +87,17 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
     finally
         @debug "[Run MSTM] Leaving working directory"
         cd(current_dir)
+
+        if !isnothing(proc)
+            @debug "[Run MSTM] Killing MSTM process"
+            kill(proc)
+            sleep(0.2)
+            kill(proc) # We need two SIGINTs to actually kill the process.
+            sleep(0.2)
+            if process_running(proc)
+                @warn "Failed to kill, please retry manually."
+            end
+        end
 
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
@@ -105,6 +122,7 @@ end
 
 # We set `write_sphere_data` to `0` since we do not need them.
 # We set `near_field_output_data` to `2` (the full set).
+# The manual uses `near_field_translation_distance`, which should be `near_field_distance`.
 function write_input(cfg::STMMConfig)
     inp = """
 number_spheres
@@ -137,7 +155,7 @@ store_translation_matrix
 $(Int(cfg.store_translation_matrix))
 sm_number_processors
 $(cfg.sm_number_processors)
-near_field_translation_distance
+near_field_distance
 $(cfg.near_field_translation_distance)
 iterations_per_correction
 $(cfg.iterations_per_correction)
@@ -312,7 +330,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44
+            s44,
         )
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
@@ -435,7 +453,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44
+            s44,
         )
         i += Nθ + 3
 

@@ -4,5 +4,6 @@
 /docs/build/
 mstm_*
 /*.jl
-/notebooks/*
-!/notebooks/*.jl
+/notebooks/**/*.png
+gmt.history
+.ipynb_checkpoints

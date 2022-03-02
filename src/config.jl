@@ -1,5 +1,3 @@
-using DocStringExtensions
-
 @enum Frame IncidentFrame TargetFrame
 
 @enum Orientation FixedOrientation RandomOrientation
