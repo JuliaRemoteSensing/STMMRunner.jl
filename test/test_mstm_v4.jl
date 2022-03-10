@@ -10,7 +10,6 @@
 
     base = STMMConfig(
         number_processors = Sys.CPU_THREADS ÷ 2,
-        run_print_file = "",
         scattering_map_model = 0,
         α = 5.0,
         β = 12.0,

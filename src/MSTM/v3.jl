@@ -92,7 +92,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
             @debug "[Run MSTM] Killing MSTM process"
             kill(proc)
             sleep(0.2)
-            kill(proc) # We need two SIGINTs to actually kill the process.
+            kill(proc) # We need two SIGTERMs to actually kill the process.
             sleep(0.2)
             if process_running(proc)
                 @warn "Failed to kill, please retry manually."

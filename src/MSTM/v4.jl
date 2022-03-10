@@ -101,7 +101,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
         proc = open(
-            setenv(`$(mpiexec().exec[1]) -n 8 $(mstm().exec[1])`, mstm().env),
+            setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`, mstm().env),
             stdout;
             write = true,
         )
@@ -226,11 +226,6 @@ function format_near_field(cfg::STMMConfig)::String
     end
 end
 
-# FIXME `run_print_file` option is not supported yet.
-# See https://github.com/dmckwski/MSTM/issues/5
-# FIXME `t_matrix_epsilon` option is not supported yet.
-# See https://github.com/dmckwski/MSTM/issues/7
-#
 # We set `print_sphere_data` to `false` since we do not need them.
 function write_input(cfg::STMMConfig)
     inp = """
@@ -554,9 +549,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         for j = 1:Nθ
             v = read_floats(out[i+j])
 
-            # FIXME currently the output theta is wrong, so we calculate it manually
-            # See https://github.com/dmckwski/MSTM/issues/9
-            push!(θ, cfg.θ_min + (j - 1) * cfg.Δθ)
+            push!(θ, v[1])
             push!(s11, v[2])
             push!(s12, v[3])
             push!(s22, v[4])
