@@ -4,6 +4,7 @@ using MSTM_jll: mpiexec, mstm
 using DataFrames
 using DocStringExtensions
 using Printf
+using Scanf
 using UUIDs
 using ...STMMRunner
 export run_mstm
@@ -42,6 +43,19 @@ struct MSTMFixedOutput <: MSTMOutput
     q_scat_waveguide_perpendicular::Float64
     scattering_matrix::DataFrame
     near_field::Union{NearField,Nothing}
+end
+
+struct MSTMLatticeOutput <: MSTMOutput
+    ref_unpolarized::Float64
+    abs_unpolarized::Float64
+    scat_unpolarized::Float64
+    ref_parallel::Float64
+    abs_parallel::Float64
+    scat_parallel::Float64
+    ref_perpendicular::Float64
+    abs_perpendicular::Float64
+    scat_perpendicular::Float64
+    scattering_matrix::DataFrame
 end
 
 struct MSTMRandomOutput <: MSTMOutput
@@ -103,7 +117,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         proc = open(
             setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`, mstm().env),
             stdout;
-            write = true,
+            write = true
         )
         wait(proc)
 
@@ -226,6 +240,26 @@ function format_near_field(cfg::STMMConfig)::String
     end
 end
 
+function format_lattice(cfg::STMMConfig)
+    if !cfg.periodic
+        return "periodic_lattice\nfalse"
+    else
+        if cfg.orientation == RandomOrientation
+            throw(ErrorException("Lattice mode is incompatible with random operation!"))
+        end
+
+        x_min = minimum(s.x - s.r for s in cfg.spheres)
+        x_max = maximum(s.x + s.r for s in cfg.spheres)
+        y_min = minimum(s.y - s.r for s in cfg.spheres)
+        y_max = maximum(s.y + s.r for s in cfg.spheres)
+        dx = x_max - x_min
+        dy = y_max - y_min
+        cx = max(dx, cfg.cell_size[1])
+        cy = max(dy, cfg.cell_size[2])
+        return "periodic_lattice\ntrue\ncell_width\n$cx,$cy"
+    end
+end
+
 # We set `print_sphere_data` to `false` since we do not need them.
 function write_input(cfg::STMMConfig)
     inp = """
@@ -270,6 +304,7 @@ function write_input(cfg::STMMConfig)
     $(cfg.Δθ)
     scattering_map_dimension
     $(cfg.scattering_map_dimension)
+    $(format_lattice(cfg))
     end_of_options
     """
 
@@ -293,11 +328,9 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
     i = 1
 
     if cfg.orientation == FixedOrientation
-        q = zeros(24)
-    elseif cfg.use_monte_carlo_integration
-        q = zeros(9)
+        q = cfg.periodic ? zeros(9) : zeros(24)
     else
-        q = zeros(3)
+        q = cfg.use_monte_carlo_integration ? zeros(9) : zeros(3)
     end
 
     θ = Float64[]
@@ -329,7 +362,12 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
     i += cfg.orientation == FixedOrientation ? 4 : 6
 
     if cfg.orientation == FixedOrientation
-        if length(cfg.layers) == 1
+        if cfg.periodic
+            # Lattice mode
+            q[1:9] = collect(@scanf out[i+1] "%e%e%e%e%e%e%e%e%e" zeros(9)...)[2:end]
+
+            i += 6
+        elseif length(cfg.layers) == 1
             # One layer
 
             # Read total efficiencies
@@ -379,6 +417,9 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             elseif occursin("forward", out[i])
                 current_type = "forward"
                 i += 2
+                if cfg.periodic
+                    i += 2
+                end
                 continue
             end
 
@@ -387,7 +428,8 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
             push!(type, current_type)
 
-            if cfg.scattering_map_model == 0
+            # TODO: need to check whether lattice output can support θ instead kx-ky convention
+            if cfg.scattering_map_model == 0 && !cfg.periodic
                 push!(θ, v[1])
             else
                 push!(kx, v[1])
@@ -412,7 +454,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             push!(s11, v[end-15])
         end
 
-        if cfg.scattering_map_model == 0
+        if cfg.scattering_map_model == 0 && !cfg.periodic
             scattering_matrix = DataFrame(;
                 θ,
                 s11,
@@ -431,7 +473,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type,
+                type
             )
         else
             scattering_matrix = DataFrame(;
@@ -453,7 +495,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type,
+                type
             )
         end
 
@@ -528,7 +570,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 Hy₌,
                 Hy⊥,
                 Hz₌,
-                Hz⊥,
+                Hz⊥
             )
 
             near_field = NearField(spheres, field)
@@ -536,7 +578,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             near_field = nothing
         end
 
-        return MSTMFixedOutput(q..., scattering_matrix, near_field)
+        return cfg.periodic ? MSTMLatticeOutput(q..., scattering_matrix) : MSTMFixedOutput(q..., scattering_matrix, near_field)
     elseif !cfg.use_monte_carlo_integration
         # Random orientation, analytical average
 

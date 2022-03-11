@@ -461,6 +461,11 @@ version = "0.3.0+0"
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
+[[deps.Scanf]]
+git-tree-sha1 = "3334a43af489576fbf3f7fef7a79647499c16c76"
+uuid = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
+version = "0.5.0"
+
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
 git-tree-sha1 = "6a2f7d70512d205ca8c7ee31bfa9f142fe74310c"

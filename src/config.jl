@@ -382,6 +382,12 @@ Base.@kwdef struct STMMConfig
 
     "[**MSTM v3**, **MSTM v4**] Spheres."
     spheres::Vector{Sphere} = Sphere[]
+
+    "[**MSTM v4**] When `periodic = true`, the spheres will be considered to construct a periodic lattice in the x-y plane. Note that periodic lattice is incompatible with random orientation."
+    periodic::Bool = false
+
+    "[**MSTM v4**] When `periodic = true`, this option sets the size of the periodic lattice. The cell size will be automatically enlarged if it cannot contain all the spheres."
+    cell_size::Tuple{Float64,Float64} = (0.0, 0.0)
 end
 
 """
