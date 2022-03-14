@@ -20,6 +20,7 @@ Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
+Scanf = "0.5"
 julia = "1.7"
 
 [extras]
