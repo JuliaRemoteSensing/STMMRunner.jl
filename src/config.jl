@@ -345,7 +345,7 @@ Base.@kwdef struct STMMConfig
     """
     near_field_expansion_order::Int = 10
 
-    "File name for the near field output. Default is `\"mstm.nf\"`."
+    "[**MSTM v3**, **MSTM v4**] File name for the near field output. Default is `\"mstm.nf\"`."
     near_field_output_file::String = "mstm.nf"
 
     """
