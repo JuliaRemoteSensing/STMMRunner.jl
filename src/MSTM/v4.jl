@@ -87,7 +87,7 @@ $(SIGNATURES)
 
 - If `keep = true`, the working directory will not be removed after the run. 
 """
-function run_mstm(cfg::STMMConfig; keep::Bool = false)
+function run_mstm(cfg::STMMConfig; keep::Bool=false)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -115,9 +115,12 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
         proc = open(
-            setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`, mstm().env),
+            setenv(
+                `$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
+                mstm().env,
+            ),
             stdout;
-            write = true
+            write=true
         )
         wait(proc)
 
@@ -142,7 +145,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false)
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
             @debug "[Run MSTM] Removing temporary directory"
-            rm(dir; force = true, recursive = true)
+            rm(dir; force=true, recursive=true)
         end
 
         return results
@@ -393,8 +396,12 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             i += 2
 
             # Read waveguide scattering efficiencies
-            q[22:24] = read_floats(out[i+1])
-            i += 3
+            if occursin("waveguide", out[i])
+                q[22:24] = read_floats(out[i+1])
+                i += 3
+            else
+                i += 1
+            end
         end
 
         current_type = "total"
@@ -514,7 +521,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 push!(sz, v[3])
                 push!(r, v[4])
             end
-            spheres = DataFrame(; x = sx, y = sy, z = sz, r)
+            spheres = DataFrame(; x=sx, y=sy, z=sz, r)
 
             Nb = read_ints(nf[Ns+4])[1]
             Nx, Ny, Nz = read_ints(nf[Ns+Nb+7])
@@ -578,28 +585,56 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             near_field = nothing
         end
 
-        return cfg.periodic ? MSTMLatticeOutput(q..., scattering_matrix) : MSTMFixedOutput(q..., scattering_matrix, near_field)
+        return cfg.periodic ? MSTMLatticeOutput(q..., scattering_matrix) :
+               MSTMFixedOutput(q..., scattering_matrix, near_field)
     elseif !cfg.use_monte_carlo_integration
         # Random orientation, analytical average
 
         # Read efficiencies
         q[1:3] = read_floats(out[i+1])
-        i += 5
+        i += 4
 
         # Read scattering matrix
-        Nθ = Int(round((cfg.θ_max - cfg.θ_min) / cfg.Δθ)) + 1
-        for j = 1:Nθ
-            v = read_floats(out[i+j])
+        Nθ, sm = read_ints(out[i])
+        i += 1
 
-            push!(θ, v[1])
-            push!(s11, v[2])
-            push!(s12, v[3])
-            push!(s22, v[4])
-            push!(s33, v[5])
-            push!(s34, v[6])
-            push!(s44, v[7])
+        if sm == 6
+            for j = 1:Nθ
+                v = read_floats(out[i+j])
+
+                push!(θ, v[1])
+                push!(s11, v[2])
+                push!(s12, v[3])
+                push!(s22, v[4])
+                push!(s33, v[5])
+                push!(s34, v[6])
+                push!(s44, v[7])
+            end
+            scattering_matrix = DataFrame(; θ, s11, s12, s22, s33, s34, s44)
+        else
+            for j = 1:Nθ
+                v = read_floats(out[i+j])
+
+                push!(θ, v[1])
+                push!(s11, v[2])
+                push!(s12, v[3])
+                push!(s13, v[4])
+                push!(s14, v[5])
+                push!(s21, v[6])
+                push!(s22, v[7])
+                push!(s23, v[8])
+                push!(s24, v[9])
+                push!(s31, v[10])
+                push!(s32, v[11])
+                push!(s33, v[12])
+                push!(s34, v[13])
+                push!(s41, v[14])
+                push!(s42, v[15])
+                push!(s43, v[16])
+                push!(s44, v[17])
+            end
+            scattering_matrix = DataFrame(; θ, s11, s12, s13, s14, s21, s22, s23, s24, s31, s32, s33, s34, s41, s42, s43, s44)
         end
-        scattering_matrix = DataFrame(; θ, s11, s12, s22, s33, s34, s44)
 
         return MSTMRandomOutput(q..., scattering_matrix)
     else

@@ -46,6 +46,10 @@ Base.@kwdef struct Layer
     β::ComplexF64 = 0.0
 end
 
+thickness(layer::Layer) = layer.d
+refractive_index(layer::Layer) = layer.m
+chiral_factor(layer::Layer) = layer.β
+
 """
 Configuration for an STMM run.
 
@@ -77,7 +81,7 @@ Base.@kwdef struct STMMConfig
     "[**MSTM v3**, **MSTM v4**] Convergence criterion for estimating the maximum order of the T matrix for the cluster. Default is `1e-6`."
     translation_epsilon::Float64 = 1e-6
 
-    "[**MSTM v3**, **MSTM v4**] Error criterion for the biconjugate gradient iterative solver. Default is `1e-8`."
+    "[**MSTM v3**, **MSTM v4**, **FaSTMM**] Error criterion for the iterative solver (biconjugate gradient for **MSTM**, and GMRES for **FaSTMM**). Default is `1e-8`."
     solution_epsilon::Float64 = 1e-8
 
     "[**MSTM v4**] The maximum truncation degree of the T matrix. This is needed to mostly to keep the code from crashing due to memory allocation limits. Default is `120`."
@@ -90,7 +94,7 @@ Base.@kwdef struct STMMConfig
     """
     t_matrix_epsilon::Float64 = 1e-7
 
-    "[**MSTM v3**, **MSTM v4**] The maximum number of iterations attempted to reach a solution. Default is `5000`."
+    "[**MSTM v3**, **MSTM v4**, **FaSTMM**] The maximum number of iterations attempted to reach a solution. Default is `5000`."
     max_iterations::Int64 = 5000
 
     """
@@ -133,7 +137,7 @@ Base.@kwdef struct STMMConfig
     "[**MSTM v3**] The minimum scattering polar angle. Default is `0.0`."
     θ_min::Float64 = 0.0
 
-    "[**MSTM v3**] The maximum scattering polar angle. Default is `0.0`."
+    "[**MSTM v3**] The maximum scattering polar angle. Default is `180.0`."
     θ_max::Float64 = 180.0
 
     "[**MSTM v3**] The minimum scattering azimuthal angle. Default is `0.0`."
@@ -145,6 +149,9 @@ Base.@kwdef struct STMMConfig
     "[**MSTM v3**, **MSTM v4**] The interval of θ for scattering matrix calculation. Default is `1.0`."
     Δθ::Float64 = 1.0
 
+    "[**FaSTMM**] The interval of ϕ for scattering matrix calculation. Default is `10.0`."
+    Δϕ::Float64 = 10.0
+
     """
     [**MSTM v3**, **MSTM v4**] This selects the reference coordinate frame upon which the scattering angles
     are based. 
@@ -154,7 +161,7 @@ Base.@kwdef struct STMMConfig
     """
     frame::Frame = TargetFrame
 
-    "[**MSTM v3**, **MSTM v4**] Whether or not to normalize the scattering matrix. Default is `true`."
+    "[**MSTM v3**, **MSTM v4**] Whether or not to normalize the scattering matrix. Default is `true`. For **MSTM v3**, this option normalizes other matrix elements according to S11. For **MSTM v4**, other elements are always normalized to S11, and this option controls the normalization of S11 itself."
     normalize_scattering_matrix::Bool = true
 
     "[**MSTM v3**, **MSTM v4**] Whether or not to take azimuthal average for fixed orientation calculations. Default is `false`."
@@ -206,7 +213,7 @@ Base.@kwdef struct STMMConfig
     calculate_scattering_coefficients::Bool = true
 
     """
-    [**MSTM v3**] File name for the scattering coefficient file. Default is `\"mstm.sca\"`.
+    [**MSTM v3**] File name for the scattering coefficient file. Default is `\"mstm.scat\"`.
 
     - When `calculate_scattering_coefficients = false`, the scattering coefficients will be read from this file.
     - When `calculate_scattering_coefficients = true`, the scattering coefficients will be written to this file.

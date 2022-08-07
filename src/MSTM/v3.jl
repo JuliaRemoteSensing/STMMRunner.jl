@@ -3,6 +3,7 @@ module V3
 using DataFrames
 using DocStringExtensions
 using Printf
+using TMatrix: AbstractTMatrix, volume_equivalent_radius
 using UUIDs
 using ...STMMRunner
 export run_mstm
@@ -47,7 +48,7 @@ $(SIGNATURES)
 - If `keep = true`, the working directory will not be removed after the run. 
 - `mstm_exe_name` specifies the name or path of your compiled MSTM v3 executable.
 """
-function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "mstm3")
+function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm3")
     current_dir = pwd()
 
     id = string(uuid1())
@@ -75,7 +76,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         proc = open(
             `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)`,
             stdout;
-            write = true,
+            write=true
         )
         wait(proc)
 
@@ -102,7 +103,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
             @debug "[Run MSTM] Removing temporary directory"
-            rm(dir; force = true, recursive = true)
+            rm(dir; force=true, recursive=true)
         end
 
         return results
@@ -330,7 +331,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44,
+            s44
         )
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
@@ -352,12 +353,12 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             end
 
             if cfg.near_field_plane_coord == 1
-                spheres = DataFrame(; x = sz, y = sx, z = sy, r)
+                spheres = DataFrame(; x=sz, y=sx, z=sy, r)
             elseif cfg.near_field_plane_coord == 2
-                spheres = DataFrame(; x = sy, y = sz, z = sx, r)
+                spheres = DataFrame(; x=sy, y=sz, z=sx, r)
             else
                 @assert cfg.near_field_plane_coord == 3
-                spheres = DataFrame(; x = sx, y = sy, z = sz, r)
+                spheres = DataFrame(; x=sx, y=sy, z=sz, r)
             end
 
             # Read near field data
@@ -453,7 +454,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             s41,
             s42,
             s43,
-            s44,
+            s44
         )
         i += Nθ + 3
 
@@ -497,6 +498,33 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             scattering_matrix_expansion_coefficients,
             nothing,
         )
+    end
+end
+
+"""
+Write the T-Matrix to `filename` in the format expected by MSTM3.
+
+Note that in MSTM3, `TM = 1` and `TE = 2`, which is the opposite of our definition, so we need to use `3 - p` and `3 - q` here instead of `p` and `q`.
+
+"""
+function write_tmatrix(filename::String, tm::AbstractTMatrix)
+    lmax = size(tm)[1]
+    open(filename, "w") do io
+        @printf io "%4d%4d%4d\n" 0 lmax lmax
+        @printf io "%6d%13.5e\n" 0 volume_equivalent_radius(tm)
+
+        for l in 1:lmax
+            for k in (-l):l
+                for q in 1:2
+                    @printf io "%5d%5d%5d\n" l k q
+                    for n in 1:l
+                        for m in (-n):n
+                            @printf io "%5d%5d%17.9e%17.9e%17.9e%17.9e\n" n m real(tm[n, m, 2, l, k, 3-q]) imag(tm[n, m, 2, l, k, 3-q]) real(tm[n, m, 1, l, k, 3-q]) imag(tm[n, m, 1, l, k, 3-q])
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 

@@ -7,3 +7,5 @@ mstm_*
 /notebooks/**/*.png
 gmt.history
 .ipynb_checkpoints
+.CondaPkg
+CondaPkg.toml

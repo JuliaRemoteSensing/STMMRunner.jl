@@ -28,7 +28,7 @@
             near_field_y_max = 5.0,
             near_field_z_min = -5.0,
             near_field_z_max = 5.0,
-            near_field_step_size = 1.0
+            near_field_step_size = 1.0,
         )
 
         @testset "No layer boundaries, scattering_map_model = 0, frame = incident" begin
@@ -55,7 +55,7 @@
             param = STMMConfig(
                 fixed_base;
                 scattering_map_model = 1,
-                scattering_map_dimension = 20
+                scattering_map_dimension = 20,
             )
             @test !isnothing(run_mstm(param; keep = true))
         end
@@ -75,7 +75,7 @@
                 fixed_base;
                 layers = layers,
                 scattering_map_model = 1,
-                scattering_map_dimension = 20
+                scattering_map_dimension = 20,
             )
             @test !isnothing(run_mstm(param; keep = true))
         end
@@ -98,7 +98,7 @@
             param = STMMConfig(
                 random_base;
                 use_monte_carlo_integration = true,
-                number_incident_directions = 10
+                number_incident_directions = 10,
             )
             @test !isnothing(run_mstm(param; keep = true))
         end
