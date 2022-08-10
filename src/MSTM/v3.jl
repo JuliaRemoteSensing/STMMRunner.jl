@@ -48,7 +48,7 @@ $(SIGNATURES)
 - If `keep = true`, the working directory will not be removed after the run. 
 - `mstm_exe_name` specifies the name or path of your compiled MSTM v3 executable.
 """
-function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm3")
+function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm3", mstm_command::Cmd=``)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -74,7 +74,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm
 
         @debug "[Run MSTM] Running MSTM..."
         proc = open(
-            `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)`,
+            isempty(mstm_command) ? `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)` : mstm_command,
             stdout;
             write=true
         )

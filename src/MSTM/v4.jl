@@ -87,7 +87,7 @@ $(SIGNATURES)
 
 - If `keep = true`, the working directory will not be removed after the run. 
 """
-function run_mstm(cfg::STMMConfig; keep::Bool=false)
+function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -115,10 +115,10 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false)
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
         proc = open(
-            setenv(
+            isempty(mstm_command) ? setenv(
                 `$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
                 mstm().env,
-            ),
+            ) : mstm_command,
             stdout;
             write=true
         )
