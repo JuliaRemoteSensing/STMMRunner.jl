@@ -134,6 +134,8 @@ run_print_file
 $(cfg.run_print_file)
 write_sphere_data
 0
+real_chiral_factor
+1.0d0
 medium_real_ref_index
 $(cfg.layers[1].m.re)
 medium_imag_ref_index
