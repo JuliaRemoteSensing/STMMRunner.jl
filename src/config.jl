@@ -161,11 +161,25 @@ Base.@kwdef struct STMMConfig
     """
     frame::Frame = TargetFrame
 
-    "[**MSTM v3**, **MSTM v4**] Whether or not to normalize the scattering matrix. Default is `true`. For **MSTM v3**, this option normalizes other matrix elements according to S11. For **MSTM v4**, other elements are always normalized to S11, and this option controls the normalization of S11 itself."
+    """
+    [**MSTM v3**, **MSTM v4**] Whether or not to normalize the scattering matrix. 
+    Default is `true`. For **MSTM v3**, this option normalizes other matrix elements according to S11. 
+    For **MSTM v4**, other elements are always normalized to S11, and this option controls the normalization of S11 itself.
+    """
     normalize_scattering_matrix::Bool = true
 
-    "[**MSTM v3**, **MSTM v4**] Whether or not to take azimuthal average for fixed orientation calculations. Default is `false`."
+    """
+    [**MSTM v3**, **MSTM v4**] Whether or not to take azimuthal average for
+    fixed orientation calculations. Default is `false`.
+    """
     azimuthal_average::Bool = false
+
+    """
+    [**MSTM v4**] Whether or not to reexpand the scattered electric field at a single origin. 
+    Default is `true`. When `azimuthal_average` is `true`, this option must be turned on.
+    It is recommended to turn this option off for sparse spheres, such as a fractal aggregate.
+    """
+    single_origin_expansion::Bool = true
 
     """
     [**MSTM v3**, **MSTM v4**] Dimensionless inverse width CB, at the focal point, of an incident Gaussian
@@ -251,7 +265,7 @@ Base.@kwdef struct STMMConfig
     [**MSTM v4**] `= 0` will have the scattering matrix printed at a range of polar angles
     (θ), with angular increment given in degrees by `Δθ`. The scattering plane
     coincides with the incident azimuth plane. The limits on θ depend on the number of plane boundaries
-    NB. scattering_map_model= 1 will print the scattering matrix in a pair (cosθ > 0, < 0) of 2D
+    NB. `scattering_map_model = 1` will print the scattering matrix in a pair (cosθ > 0, < 0) of 2D
     arrays, with coordinates `kx = sinθcosφ`, `ky = sinθsinφ`. The number of points on each axis is given
     by `scattering_map_dimension`. Default is `0`, and random orientation calculations force `0`.
     """

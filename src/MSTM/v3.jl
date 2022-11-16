@@ -27,7 +27,7 @@ struct MSTMFixedOutput <: MSTMOutput
     q_abs_perpendicular::Float64
     q_scat_perpendicular::Float64
     scattering_matrix::DataFrame
-    near_field::Union{NearField,Nothing}
+    near_field::Union{NearField, Nothing}
 end
 
 struct MSTMRandomOutput <: MSTMOutput
@@ -37,7 +37,7 @@ struct MSTMRandomOutput <: MSTMOutput
     asymmetric_parameter::Float64
     scattering_matrix::DataFrame
     scattering_matrix_expansion_coefficients::DataFrame
-    t_matrix::Union{DataFrame,Nothing}
+    t_matrix::Union{DataFrame, Nothing}
 end
 
 """
@@ -48,7 +48,8 @@ $(SIGNATURES)
 - If `keep = true`, the working directory will not be removed after the run. 
 - `mstm_exe_name` specifies the name or path of your compiled MSTM v3 executable.
 """
-function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm3", mstm_command::Cmd=``)
+function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "mstm3",
+                  mstm_command::Cmd = ``)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -73,11 +74,10 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm
         write_input(cfg)
 
         @debug "[Run MSTM] Running MSTM..."
-        proc = open(
-            isempty(mstm_command) ? `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)` : mstm_command,
-            stdout;
-            write=true
-        )
+        proc = open(isempty(mstm_command) ?
+                    `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)` : mstm_command,
+                    stdout;
+                    write = true)
         wait(proc)
 
         @debug "[Run MSTM] Collecting MSTM output"
@@ -103,7 +103,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_exe_name::String="mstm
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
             @debug "[Run MSTM] Removing temporary directory"
-            rm(dir; force=true, recursive=true)
+            rm(dir; force = true, recursive = true)
         end
 
         return results
@@ -278,15 +278,15 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         # Fixed orientation
 
         # Read unpolarized efficiencies
-        q[1:4] = read_floats(out[i+1])
+        q[1:4] = read_floats(out[i + 1])
         i += 2
 
         # Read parallel efficiencies
-        q[5:7] = read_floats(out[i+1])
+        q[5:7] = read_floats(out[i + 1])
         i += 2
 
         # Read perpendicular efficiencies
-        q[8:10] = read_floats(out[i+1])
+        q[8:10] = read_floats(out[i + 1])
         i += 4
 
         # Read scattering matrix
@@ -299,42 +299,41 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             push!(ϕ, has_phi ? v[2] : 0.0)
 
             push!(s44, v[end])
-            push!(s43, v[end-1])
-            push!(s42, v[end-2])
-            push!(s41, v[end-3])
-            push!(s34, v[end-4])
-            push!(s33, v[end-5])
-            push!(s32, v[end-6])
-            push!(s31, v[end-7])
-            push!(s24, v[end-8])
-            push!(s23, v[end-9])
-            push!(s22, v[end-10])
-            push!(s21, v[end-11])
-            push!(s14, v[end-12])
-            push!(s13, v[end-13])
-            push!(s12, v[end-14])
-            push!(s11, v[end-15])
+            push!(s43, v[end - 1])
+            push!(s42, v[end - 2])
+            push!(s41, v[end - 3])
+            push!(s34, v[end - 4])
+            push!(s33, v[end - 5])
+            push!(s32, v[end - 6])
+            push!(s31, v[end - 7])
+            push!(s24, v[end - 8])
+            push!(s23, v[end - 9])
+            push!(s22, v[end - 10])
+            push!(s21, v[end - 11])
+            push!(s14, v[end - 12])
+            push!(s13, v[end - 13])
+            push!(s12, v[end - 14])
+            push!(s11, v[end - 15])
         end
         scattering_matrix = DataFrame(;
-            θ,
-            ϕ,
-            s11,
-            s12,
-            s13,
-            s14,
-            s21,
-            s22,
-            s23,
-            s24,
-            s31,
-            s32,
-            s33,
-            s34,
-            s41,
-            s42,
-            s43,
-            s44
-        )
+                                      θ,
+                                      ϕ,
+                                      s11,
+                                      s12,
+                                      s13,
+                                      s14,
+                                      s21,
+                                      s22,
+                                      s23,
+                                      s24,
+                                      s31,
+                                      s32,
+                                      s33,
+                                      s34,
+                                      s41,
+                                      s42,
+                                      s43,
+                                      s44)
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
             nf = split(read(open(cfg.near_field_output_file), String), "\n")
@@ -347,20 +346,20 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             sy = Float64[]
             sz = fill(cfg.near_field_plane_position, Ns)
             r = Float64[]
-            for j = 1:Ns
-                v = read_floats(nf[j+2])
+            for j in 1:Ns
+                v = read_floats(nf[j + 2])
                 push!(sx, v[1])
                 push!(sy, v[2])
                 push!(r, v[3])
             end
 
             if cfg.near_field_plane_coord == 1
-                spheres = DataFrame(; x=sz, y=sx, z=sy, r)
+                spheres = DataFrame(; x = sz, y = sx, z = sy, r)
             elseif cfg.near_field_plane_coord == 2
-                spheres = DataFrame(; x=sy, y=sz, z=sx, r)
+                spheres = DataFrame(; x = sy, y = sz, z = sx, r)
             else
                 @assert cfg.near_field_plane_coord == 3
-                spheres = DataFrame(; x=sx, y=sy, z=sz, r)
+                spheres = DataFrame(; x = sx, y = sy, z = sz, r)
             end
 
             # Read near field data
@@ -374,8 +373,8 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             X = Float64[]
             Y = Float64[]
             Z = fill(cfg.near_field_plane_position, Nx * Ny)
-            for j = 1:Nx*Ny
-                v = read_floats(nf[j+2+Ns])
+            for j in 1:(Nx * Ny)
+                v = read_floats(nf[j + 2 + Ns])
 
                 push!(X, v[1])
                 push!(Y, v[2])
@@ -409,13 +408,13 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         # Random orientation
 
         # Read efficiencies
-        q[1:4] = read_floats(out[i+1])
+        q[1:4] = read_floats(out[i + 1])
         i += 3
 
         # Read scattering matrix
         Nθ = Int(round((cfg.θ_max - cfg.θ_min) / cfg.Δθ)) + 1
-        for j = 1:Nθ
-            v = read_floats(out[i+j])
+        for j in 1:Nθ
+            v = read_floats(out[i + j])
 
             push!(θ, v[1])
             push!(ϕ, 0.0)
@@ -439,25 +438,24 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             push!(s44, v[11])
         end
         scattering_matrix = DataFrame(;
-            θ,
-            ϕ,
-            s11,
-            s12,
-            s13,
-            s14,
-            s21,
-            s22,
-            s23,
-            s24,
-            s31,
-            s32,
-            s33,
-            s34,
-            s41,
-            s42,
-            s43,
-            s44
-        )
+                                      θ,
+                                      ϕ,
+                                      s11,
+                                      s12,
+                                      s13,
+                                      s14,
+                                      s21,
+                                      s22,
+                                      s23,
+                                      s24,
+                                      s31,
+                                      s32,
+                                      s33,
+                                      s34,
+                                      s41,
+                                      s42,
+                                      s43,
+                                      s44)
         i += Nθ + 3
 
         # Read scattering matrix expansion coefficients
@@ -491,15 +489,13 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             push!(a24, v[11])
             push!(a14, v[12])
         end
-        scattering_matrix_expansion_coefficients =
-            DataFrame(; w, a11, a12, a13, a14, a22, a23, a24, a32, a33, a34, a44)
+        scattering_matrix_expansion_coefficients = DataFrame(; w, a11, a12, a13, a14, a22,
+                                                             a23, a24, a32, a33, a34, a44)
 
-        return MSTMRandomOutput(
-            q...,
-            scattering_matrix,
-            scattering_matrix_expansion_coefficients,
-            nothing,
-        )
+        return MSTMRandomOutput(q...,
+                                scattering_matrix,
+                                scattering_matrix_expansion_coefficients,
+                                nothing)
     end
 end
 
@@ -507,7 +503,6 @@ end
 Write the T-Matrix to `filename` in the format expected by MSTM3.
 
 Note that in MSTM3, `TM = 1` and `TE = 2`, which is the opposite of our definition, so we need to use `3 - p` and `3 - q` here instead of `p` and `q`.
-
 """
 function write_tmatrix(filename::String, tm::AbstractTMatrix)
     lmax = size(tm)[1]
@@ -521,7 +516,11 @@ function write_tmatrix(filename::String, tm::AbstractTMatrix)
                     @printf io "%5d%5d%5d\n" l k q
                     for n in 1:l
                         for m in (-n):n
-                            @printf io "%5d%5d%17.9e%17.9e%17.9e%17.9e\n" n m real(tm[n, m, 2, l, k, 3-q]) imag(tm[n, m, 2, l, k, 3-q]) real(tm[n, m, 1, l, k, 3-q]) imag(tm[n, m, 1, l, k, 3-q])
+                            @printf(io, "%5d%5d%17.9e%17.9e%17.9e%17.9e\n", n, m,
+                                    real(tm[n, m, 2, l, k, 3 - q]),
+                                    imag(tm[n, m, 2, l, k, 3 - q]),
+                                    real(tm[n, m, 1, l, k, 3 - q]),
+                                    imag(tm[n, m, 1, l, k, 3 - q]))
                         end
                     end
                 end

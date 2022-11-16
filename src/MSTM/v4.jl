@@ -114,14 +114,11 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
         # We cannot simply do `$(mpiexec()) ... $(mstm())` here due to the limit of Cmd interpolation.
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
-        proc = open(
-            isempty(mstm_command) ? setenv(
-                `$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
-                mstm().env,
-            ) : mstm_command,
+        proc = open(isempty(mstm_command) ?
+                    setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
+                mstm().env) : mstm_command,
             stdout;
-            write=true
-        )
+            write=true)
         wait(proc)
 
         @debug "[Run MSTM] Collecting MSTM output"
@@ -213,7 +210,7 @@ function format_orientation(cfg::STMMConfig)::String
             return "random_orientation\ntrue"
         end
     else
-        return "incident_alpha_deg\n$(cfg.α)\nincident_beta_deg\n$(cfg.β)\nazimuthal_average\n$(cfg.azimuthal_average)"
+        return "incident_alpha_deg\n$(cfg.α)\nincident_beta_deg\n$(cfg.β)\nazimuthal_average\n$(cfg.azimuthal_average)\nsingle_origin_expansion\n$(cfg.single_origin_expansion)"
     end
 end
 
@@ -237,7 +234,8 @@ function format_near_field(cfg::STMMConfig)::String
     \nnear_field_expansion_spacing
     $(cfg.near_field_expansion_spacing)
     near_field_expansion_order
-    $(cfg.near_field_expansion_order)""" : "")
+    $(cfg.near_field_expansion_order)""" :
+                                      "")
     else
         return "calculate_near_field\nfalse"
     end
@@ -480,8 +478,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type
-            )
+                type)
         else
             scattering_matrix = DataFrame(;
                 kx,
@@ -502,8 +499,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 s42,
                 s43,
                 s44,
-                type
-            )
+                type)
         end
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
@@ -514,7 +510,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             sy = Float64[]
             sz = Float64[]
             r = Float64[]
-            for j = 1:Ns
+            for j in 1:Ns
                 v = read_floats(nf[j+3])
                 push!(sx, v[1])
                 push!(sy, v[2])
@@ -542,7 +538,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             Hy⊥ = ComplexF64[]
             Hz₌ = ComplexF64[]
             Hz⊥ = ComplexF64[]
-            for j = 1:Nx*Ny*Nz
+            for j in 1:(Nx*Ny*Nz)
                 v = read_floats(nf[j+7+Ns+Nb])
                 push!(x, v[1])
                 push!(y, v[2])
@@ -561,7 +557,6 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 push!(Hz⊥, complex(v[26], v[27]))
             end
 
-
             field = DataFrame(;
                 x,
                 y,
@@ -577,8 +572,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 Hy₌,
                 Hy⊥,
                 Hz₌,
-                Hz⊥
-            )
+                Hz⊥)
 
             near_field = NearField(spheres, field)
         else
@@ -599,7 +593,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         i += 1
 
         if sm == 6
-            for j = 1:Nθ
+            for j in 1:Nθ
                 v = read_floats(out[i+j])
 
                 push!(θ, v[1])
@@ -612,7 +606,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             end
             scattering_matrix = DataFrame(; θ, s11, s12, s22, s33, s34, s44)
         else
-            for j = 1:Nθ
+            for j in 1:Nθ
                 v = read_floats(out[i+j])
 
                 push!(θ, v[1])
@@ -633,7 +627,8 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 push!(s43, v[16])
                 push!(s44, v[17])
             end
-            scattering_matrix = DataFrame(; θ, s11, s12, s13, s14, s21, s22, s23, s24, s31, s32, s33, s34, s41, s42, s43, s44)
+            scattering_matrix = DataFrame(; θ, s11, s12, s13, s14, s21, s22, s23, s24, s31,
+                s32, s33, s34, s41, s42, s43, s44)
         end
 
         return MSTMRandomOutput(q..., scattering_matrix)
@@ -651,7 +646,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         Nθ, _ = read_ints(out[i])
         i += 1
 
-        for j = 1:Nθ
+        for j in 1:Nθ
             v = read_floats(out[i+j])
             push!(θ, v[1])
             push!(s11, v[2])
@@ -672,7 +667,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         @assert occursin("diffuse", out[i])
         i += 1
 
-        for j = 1:Nθ
+        for j in 1:Nθ
             v = read_floats(out[i+j])
             push!(θ, v[1])
             push!(s11, v[2])
@@ -686,10 +681,8 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         scattering_matrix_diffuse = DataFrame(; θ, s11, s12, s22, s33, s34, s44)
 
         i += Nθ + 1
-        @assert occursin(
-            "azimuthal averaged scattering matrix expansion coefficients",
-            out[i],
-        )
+        @assert occursin("azimuthal averaged scattering matrix expansion coefficients",
+            out[i])
         i += 2
 
         n = Int[]
@@ -714,15 +707,13 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             i += 1
         end
 
-        scattering_matrix_expansion_coefficients =
-            DataFrame(; n, a11, a44, a12, a34, a22p, a22m)
+        scattering_matrix_expansion_coefficients = DataFrame(; n, a11, a44, a12, a34, a22p,
+            a22m)
 
-        return MSTMMonteCarloOutput(
-            q...,
+        return MSTMMonteCarloOutput(q...,
             scattering_matrix_azimuthal_average,
             scattering_matrix_diffuse,
-            scattering_matrix_expansion_coefficients,
-        )
+            scattering_matrix_expansion_coefficients)
     end
 end
 

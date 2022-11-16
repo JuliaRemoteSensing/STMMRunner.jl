@@ -29,35 +29,28 @@ function run_smuthi(cfg::STMMConfig)
         UTILITY_CUDA.enable_gpu()
     end
 
-    layers = LAYERS.LayerSystem(
-        thicknesses=PyList(STMMRunner.thickness.(cfg.layers)),
-        refractive_indices=PyList(STMMRunner.refractive_index.(cfg.layers)),
-    )
+    layers = LAYERS.LayerSystem(thicknesses = PyList(STMMRunner.thickness.(cfg.layers)),
+                                refractive_indices = PyList(STMMRunner.refractive_index.(cfg.layers)))
 
-    spheres = PyList([PARTICLES.Sphere(;
-        position=[sphere.x, sphere.y, sphere.z],
-        refractive_index=sphere.m,
-        radius=sphere.r, l_max=estimate_lmax(sphere.r)) for sphere in cfg.spheres])
+    spheres = PyList([PARTICLES.Sphere(; position = [sphere.x, sphere.y, sphere.z],
+                                       refractive_index = sphere.m,
+                                       radius = sphere.r, l_max = estimate_lmax(sphere.r))
+                      for sphere in cfg.spheres])
 
-    plane_wave = INITIAL_FIELD.PlaneWave(
-        ; vacuum_wavelength=2π,
-        polar_angle=cfg.β * π / 180.0,
-        azimuthal_angle=cfg.α * π / 180.0,
-        polarization=0
-    )
+    plane_wave = INITIAL_FIELD.PlaneWave(; vacuum_wavelength = 2π,
+                                         polar_angle = cfg.β * π / 180.0,
+                                         azimuthal_angle = cfg.α * π / 180.0,
+                                         polarization = 0)
 
-    simulation = SIMULATION.Simulation(;
-        layer_system=layers, particle_list=spheres, initial_field=plane_wave)
+    simulation = SIMULATION.Simulation(; layer_system = layers, particle_list = spheres,
+                                       initial_field = plane_wave)
 
     simulation.run()
 
-    Csca = pyconvert(Float64, FAR_FIELD.total_scattering_cross_section(;
-        simulation=simulation
-    ))
+    Csca = pyconvert(Float64,
+                     FAR_FIELD.total_scattering_cross_section(; simulation = simulation))
 
-    Cext = pyconvert(Float64, FAR_FIELD.extinction_cross_section(;
-        simulation=simulation
-    ))
+    Cext = pyconvert(Float64, FAR_FIELD.extinction_cross_section(; simulation = simulation))
 
     Cabs = Cext - Csca
 
@@ -65,8 +58,8 @@ function run_smuthi(cfg::STMMConfig)
 end
 
 function __init__()
-    CondaPkg.add("python"; version="3.9.12")
-    CondaPkg.add_pip("smuthi", version="@ git+https://gitlab.com/AmosEgel/smuthi.git")
+    CondaPkg.add("python"; version = "3.9.12")
+    CondaPkg.add_pip("smuthi", version = "@ git+https://gitlab.com/AmosEgel/smuthi.git")
     PythonCall.pycopy!(LAYERS, pyimport("smuthi.layers"))
     PythonCall.pycopy!(SIMULATION, pyimport("smuthi.simulation"))
     PythonCall.pycopy!(INITIAL_FIELD, pyimport("smuthi.initial_field"))

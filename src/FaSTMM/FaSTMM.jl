@@ -7,14 +7,13 @@ using ..STMMRunner
 export run_fastmm
 
 struct FaSTMMOutput
-    q_ext::Float64
-    q_abs::Float64
-    q_scat::Float64
+    c_ext::Float64
+    c_abs::Float64
+    c_scat::Float64
     scattering_matrix::DataFrame
 end
 
-
-function run_fastmm(cfg::STMMConfig; keep::Bool=false, fastmm_exe_name::String="FaSTMM")
+function run_fastmm(cfg::STMMConfig; keep::Bool = false, fastmm_exe_name::String = "FaSTMM")
     current_dir = pwd()
 
     id = string(uuid1())
@@ -44,13 +43,13 @@ function run_fastmm(cfg::STMMConfig; keep::Bool=false, fastmm_exe_name::String="
         # FaSTMM uses OpenMP, so the number of threads needs to be 
         # set via the environment variable.
         ENV["OMP_NUM_THREADS"] = cfg.number_processors
-        proc = open(`$fastmm_exe_name $options`, stdout; write=true)
+        proc = open(`$fastmm_exe_name $options`, stdout; write = true)
         wait(proc)
 
         @debug "[Run FaSTMM] Collecting FaSTMM output"
         results = collect_output(cfg)
     catch e
-        @error "[Run FaSTMM]" exception = (e, catch_backtrace())
+        @error "[Run FaSTMM]" exception=(e, catch_backtrace())
         @error "[Run FaSTMM] Runtime error occurred"
     finally
         @debug "[Run FaSTMM] Leaving working directory"
@@ -68,7 +67,7 @@ function run_fastmm(cfg::STMMConfig; keep::Bool=false, fastmm_exe_name::String="
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
             @debug "[Run FaSTMM] Removing temporary directory"
-            rm(dir; force=true, recursive=true)
+            rm(dir; force = true, recursive = true)
         end
 
         return results
@@ -77,8 +76,8 @@ end
 
 function write_geometry(cfg::STMMConfig)
     coord = hcat(map(cfg.spheres) do sphere
-        [sphere.x, sphere.y, sphere.z]
-    end...)
+                     [sphere.x, sphere.y, sphere.z]
+                 end...)
 
     radius = map(s -> s.r, cfg.spheres)
     permittivity = map(s -> s.m^2, cfg.spheres)
@@ -119,85 +118,99 @@ function make_options(cfg::STMMConfig)
 end
 
 function collect_output(cfg::STMMConfig)
-    q_ext = 0.0
-    q_abs = 0.0
-    q_scat = 0.0
+    c_ext = 0.0
+    c_abs = 0.0
+    c_scat = 0.0
 
     s = h5open("mueller.h5", "r") do file
         crs = read(file, "/cross_sections")
-        q_ext = crs[1]
-        q_scat = crs[2]
-        q_abs = crs[3]
+        c_ext = crs[1]
+        c_scat = crs[2]
+        c_abs = crs[3]
 
         mueller = read(file, "/mueller")
         _, c = size(mueller)
 
-        θ = mueller[:, end-16] * 180.0 / π
-        s11 = mueller[:, end-15]
-        s12 = mueller[:, end-14]
-        s13 = mueller[:, end-13]
-        s14 = mueller[:, end-12]
-        s21 = mueller[:, end-11]
-        s22 = mueller[:, end-10]
-        s23 = mueller[:, end-9]
-        s24 = mueller[:, end-8]
-        s31 = mueller[:, end-7]
-        s32 = mueller[:, end-6]
-        s33 = mueller[:, end-5]
-        s34 = mueller[:, end-4]
-        s41 = mueller[:, end-3]
-        s42 = mueller[:, end-2]
-        s43 = mueller[:, end-1]
+        θ = mueller[:, end - 16] * 180.0 / π
+        s11 = mueller[:, end - 15]
+        s12 = mueller[:, end - 14]
+        s13 = mueller[:, end - 13]
+        s14 = mueller[:, end - 12]
+        s21 = mueller[:, end - 11]
+        s22 = mueller[:, end - 10]
+        s23 = mueller[:, end - 9]
+        s24 = mueller[:, end - 8]
+        s31 = mueller[:, end - 7]
+        s32 = mueller[:, end - 6]
+        s33 = mueller[:, end - 5]
+        s34 = mueller[:, end - 4]
+        s41 = mueller[:, end - 3]
+        s42 = mueller[:, end - 2]
+        s43 = mueller[:, end - 1]
         s44 = mueller[:, end]
+
+        if cfg.normalize_scattering_matrix
+            s12 ./= s11
+            s13 ./= s11
+            s14 ./= s11
+            s21 ./= s11
+            s22 ./= s11
+            s23 ./= s11
+            s24 ./= s11
+            s31 ./= s11
+            s32 ./= s11
+            s33 ./= s11
+            s34 ./= s11
+            s41 ./= s11
+            s42 ./= s11
+            s43 ./= s11
+            s44 ./= s11
+        end
 
         if c == 18
             ϕ = mueller[:, 1] * 180.0 / π
-            return DataFrame(
-                θ=θ,
-                ϕ=ϕ,
-                s11=s11,
-                s12=s12,
-                s13=s13,
-                s14=s14,
-                s21=s21,
-                s22=s22,
-                s23=s23,
-                s24=s24,
-                s31=s31,
-                s32=s32,
-                s33=s33,
-                s34=s34,
-                s41=s41,
-                s42=s42,
-                s43=s43,
-                s44=s44,
-            )
+            return DataFrame(θ = θ,
+                             ϕ = ϕ,
+                             s11 = s11,
+                             s12 = s12,
+                             s13 = s13,
+                             s14 = s14,
+                             s21 = s21,
+                             s22 = s22,
+                             s23 = s23,
+                             s24 = s24,
+                             s31 = s31,
+                             s32 = s32,
+                             s33 = s33,
+                             s34 = s34,
+                             s41 = s41,
+                             s42 = s42,
+                             s43 = s43,
+                             s44 = s44)
         else
             @assert c == 17
 
-            return DataFrame(
-                θ=θ,
-                s11=s11,
-                s12=s12,
-                s13=s13,
-                s14=s14,
-                s21=s21,
-                s22=s22,
-                s23=s23,
-                s24=s24,
-                s31=s31,
-                s32=s32,
-                s33=s33,
-                s34=s34,
-                s41=s41,
-                s42=s42,
-                s43=s43,
-                s44=s44,
-            )
+            return DataFrame(θ = θ,
+                             s11 = s11,
+                             s12 = s12,
+                             s13 = s13,
+                             s14 = s14,
+                             s21 = s21,
+                             s22 = s22,
+                             s23 = s23,
+                             s24 = s24,
+                             s31 = s31,
+                             s32 = s32,
+                             s33 = s33,
+                             s34 = s34,
+                             s41 = s41,
+                             s42 = s42,
+                             s43 = s43,
+                             s44 = s44)
         end
     end
 
-    return FaSTMMOutput(q_ext, q_abs, q_scat, s)
+    return FaSTMMOutput(c_ext, c_abs, c_scat, s)
 end
 
 end
