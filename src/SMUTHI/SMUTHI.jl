@@ -58,7 +58,7 @@ function run_smuthi(cfg::STMMConfig)
 end
 
 function __init__()
-    CondaPkg.add("python"; version = "3.9.12")
+    CondaPkg.add("python"; version = "<3.11")
     CondaPkg.add_pip("smuthi", version = "@ git+https://gitlab.com/AmosEgel/smuthi.git")
     PythonCall.pycopy!(LAYERS, pyimport("smuthi.layers"))
     PythonCall.pycopy!(SIMULATION, pyimport("smuthi.simulation"))
