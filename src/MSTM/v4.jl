@@ -117,7 +117,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
         proc = open(isempty(mstm_command) ?
                     setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
                 mstm().env) : mstm_command,
-            stdout;
+            cfg.redirect_stdout;
             write=true)
         wait(proc)
 

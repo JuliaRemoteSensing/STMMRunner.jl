@@ -69,7 +69,7 @@ Base.@kwdef struct STMMConfig
     run_print_file::String = "mstm.run"
 
     "[**MSTM v3**] Rotate the target about the target coordinate frame using a z-y-z specified Euler angle. Default is `(0.0, 0.0, 0.0)`."
-    target_euler_angles_deg::NTuple{3,Float64} = (0.0, 0.0, 0.0)
+    target_euler_angles_deg::NTuple{3, Float64} = (0.0, 0.0, 0.0)
 
     """
     [**MSTM v3**, **MSTM v4**] Convergence criterion for determining the truncation order for the wave function expansions for each sphere. Default is `1e-6`.
@@ -192,7 +192,7 @@ Base.@kwdef struct STMMConfig
     [**MSTM v3**, **MSTM v4**] x, y, and z coordinates of the focal point of the Gaussian beam, relative to
     the origin defined by `spheres`. Default is `(0.0, 0.0, 0.0)`.
     """
-    gaussian_beam_focal_point::NTuple{3,Float64} = (0.0, 0.0, 0.0)
+    gaussian_beam_focal_point::NTuple{3, Float64} = (0.0, 0.0, 0.0)
 
     """
     [**MSTM v3**, **MSTM v4**] 
@@ -304,7 +304,7 @@ Base.@kwdef struct STMMConfig
 
     Default is `(0.0, 0.0)`.
     """
-    near_field_plane_vertices::Union{NTuple{2,Float64},NTuple{4,Float64}} = (0.0, 0.0)
+    near_field_plane_vertices::Union{NTuple{2, Float64}, NTuple{4, Float64}} = (0.0, 0.0)
 
     "[**MSTM v4**] The minimum x coordinate of the near field calculation region. Default is `0.0`."
     near_field_x_min::Float64 = 0.0
@@ -408,7 +408,10 @@ Base.@kwdef struct STMMConfig
     periodic::Bool = false
 
     "[**MSTM v4**] When `periodic = true`, this option sets the size of the periodic lattice. The cell size will be automatically enlarged if it cannot contain all the spheres."
-    cell_size::Tuple{Float64,Float64} = (0.0, 0.0)
+    cell_size::Tuple{Float64, Float64} = (0.0, 0.0)
+
+    "Redirect the output of the program to the specified IO stream. Default is `Base.stdout`."
+    redirect_stdout::IO = Base.stdout
 end
 
 """

@@ -76,7 +76,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         @debug "[Run MSTM] Running MSTM..."
         proc = open(isempty(mstm_command) ?
                     `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)` : mstm_command,
-                    stdout;
+                    cfg.redirect_stdout;
                     write = true)
         wait(proc)
 

@@ -9,3 +9,4 @@ gmt.history
 .ipynb_checkpoints
 .CondaPkg
 CondaPkg.toml
+.vscode

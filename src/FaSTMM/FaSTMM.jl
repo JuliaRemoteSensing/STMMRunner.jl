@@ -43,7 +43,7 @@ function run_fastmm(cfg::STMMConfig; keep::Bool = false, fastmm_exe_name::String
         # FaSTMM uses OpenMP, so the number of threads needs to be 
         # set via the environment variable.
         ENV["OMP_NUM_THREADS"] = cfg.number_processors
-        proc = open(`$fastmm_exe_name $options`, stdout; write = true)
+        proc = open(`$fastmm_exe_name $options`, cfg.redirect_stdout; write = true)
         wait(proc)
 
         @debug "[Run FaSTMM] Collecting FaSTMM output"
