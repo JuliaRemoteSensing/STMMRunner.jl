@@ -52,14 +52,13 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
+      - name: Install Julia dependencies
+        shell: julia --project=docs {0}
+        run: |
+          using Pkg;
+          pkg"dev . ./packages/MSTM4Runner ./packages/MSTM3Runner ./packages/FaSTMMRunner"
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - run: |
-          julia --project=docs -e '
-            using Documenter: DocMeta, doctest
-            using STMMRunner
-            DocMeta.setdocmeta!(STMMRunner, :DocTestSetup, :(using STMMRunner); recursive=true)
-            doctest(STMMRunner)'
