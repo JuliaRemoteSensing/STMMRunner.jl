@@ -1,12 +1,15 @@
-module V3
+module MSTM3Runner
 
 using DataFrames
 using DocStringExtensions
 using Printf
-using TMatrix: AbstractTMatrix, volume_equivalent_radius
+using OffsetArrays: OffsetArray
+using TransitionMatrices: TransitionMatrices, AbstractTransitionMatrix, AbstractShape,
+                          volume_equivalent_radius
 using UUIDs
-using ...STMMRunner
-export run_mstm
+using Reexport: @reexport
+@reexport using STMMRunner
+export run_mstm, read_tmatrix, write_tmatrix
 
 abstract type MSTMOutput end
 
@@ -30,6 +33,25 @@ struct MSTMFixedOutput <: MSTMOutput
     near_field::Union{NearField, Nothing}
 end
 
+struct MSTMCluster <: AbstractShape{Float64, ComplexF64}
+    rᵥ::Float64
+    q_ext::Matrix{Float64}
+    q_sca::Matrix{Float64}
+    q_abs::Matrix{Float64}
+end
+
+TransitionMatrices.volume_equivalent_radius(s::MSTMCluster) = s.rᵥ
+
+struct MSTMTransitionMatrix{N} <: AbstractTransitionMatrix{ComplexF64, N}
+    cluster::MSTMCluster
+    𝐓::OffsetArray{ComplexF64, 6, Array{ComplexF64, 6}}
+end
+
+Base.getindex(𝐓::MSTMTransitionMatrix{N}, idx) where {N} = getindex(𝐓.𝐓, idx)
+function Base.getindex(𝐓::MSTMTransitionMatrix{N}, idxs...) where {N}
+    getindex(𝐓.𝐓, idxs...)
+end
+
 struct MSTMRandomOutput <: MSTMOutput
     q_ext::Float64
     q_abs::Float64
@@ -37,19 +59,19 @@ struct MSTMRandomOutput <: MSTMOutput
     asymmetric_parameter::Float64
     scattering_matrix::DataFrame
     scattering_matrix_expansion_coefficients::DataFrame
-    t_matrix::Union{DataFrame, Nothing}
+    t_matrix::Union{MSTMTransitionMatrix, Nothing}
 end
 
 """
-Use the given configuration to run MSTM v3.
-
 $(SIGNATURES)
+
+Use the given configuration to run MSTM v3.
 
 - If `keep = true`, the working directory will not be removed after the run. 
 - `mstm_exe_name` specifies the name or path of your compiled MSTM v3 executable.
 """
 function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "mstm3",
-                  mstm_command::Cmd = ``)
+                  mstm_command::Union{Cmd, Nothing} = nothing)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -74,7 +96,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool = false, mstm_exe_name::String = "
         write_input(cfg)
 
         @debug "[Run MSTM] Running MSTM..."
-        proc = open(isempty(mstm_command) ?
+        proc = open(isnothing(mstm_command) ?
                     `mpiexec -n $(cfg.number_processors) $(mstm_exe_name)` : mstm_command,
                     cfg.redirect_stdout;
                     write = true)
@@ -239,7 +261,7 @@ end
 function collect_output(cfg::STMMConfig)::MSTMOutput
     @assert isfile(cfg.output_file)
 
-    out = split(read(open(cfg.output_file), String), "\n")
+    out = readlines(cfg.output_file)
     i = 1
 
     if cfg.orientation == FixedOrientation
@@ -291,7 +313,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
         # Read scattering matrix
         has_phi = !cfg.azimuthal_average
-        while !isempty(out[i])
+        while i <= length(out)
             v = read_floats(out[i])
             i += 1
 
@@ -472,7 +494,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         a34 = Float64[]
         a44 = Float64[]
 
-        while !isempty(out[i])
+        while i <= length(out)
             v = read_floats(out[i])
             i += 1
 
@@ -492,35 +514,96 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         scattering_matrix_expansion_coefficients = DataFrame(; w, a11, a12, a13, a14, a22,
                                                              a23, a24, a32, a33, a34, a44)
 
+        if isfile(cfg.t_matrix_file) && cfg.calculate_t_matrix
+            # Read T-matrix
+            t_matrix = read_tmatrix(cfg.t_matrix_file)
+        else
+            t_matrix = nothing
+        end
+
         return MSTMRandomOutput(q...,
                                 scattering_matrix,
                                 scattering_matrix_expansion_coefficients,
-                                nothing)
+                                t_matrix)
     end
 end
 
 """
+$(SIGNATURES)
+
+Read the MSTM3 format T-Matrix.
+
+Note that in MSTM3, `TM = 1` and `TE = 2`, which is the opposite of the definition in `TransitionMatrices.jl`.
+"""
+function read_tmatrix(filename::String)
+    @assert isfile(filename)
+
+    tm = readlines(filename)
+    Nₘₐₓ = read_ints(tm[1])[2]
+    Nₛ, rᵥ = read_floats(tm[2])
+    Nₛ = Int(Nₛ)
+
+    # Order (m, n, m′, n′, p, p′)
+    𝐓 = OffsetArray(zeros(ComplexF64, 2Nₘₐₓ + 1, Nₘₐₓ, 2Nₘₐₓ + 1, Nₘₐₓ, 2, 2),
+                    (-Nₘₐₓ):Nₘₐₓ, 1:Nₘₐₓ, (-Nₘₐₓ):Nₘₐₓ, 1:Nₘₐₓ, 1:2, 1:2)
+
+    q_sca = zeros(Nₛ, Nₘₐₓ)
+    q_abs = zeros(Nₛ, Nₘₐₓ)
+    q_ext = zeros(Nₛ, Nₘₐₓ)
+
+    i = 3
+    for n′ in 1:Nₘₐₓ
+        for m′ in (-n′):n′
+            for p′ in 1:2
+                n′ᵢ, m′ᵢ, p′ᵢ = read_ints(tm[i])
+                @assert (n′ᵢ, m′ᵢ, p′ᵢ) == (n′, m′, p′)
+
+                i += 1
+                for n in 1:n′
+                    for m in (-n):n
+                        nᵢ, mᵢ, aᵣ, aᵢ, bᵣ, bᵢ = read_floats(tm[i])
+                        @assert (nᵢ, mᵢ) == (n, m)
+                        𝐓[m, n, m′, n′, 2, 3 - p′] = ComplexF64(aᵣ, aᵢ)
+                        𝐓[m, n, m′, n′, 1, 3 - p′] = ComplexF64(bᵣ, bᵢ)
+                        i += 1
+                    end
+                end
+            end
+        end
+
+        for s in 1:Nₛ
+            _, q_sca[s, n′], q_abs[s, n′], q_ext[s, n′] = read_floats(tm[i])
+            i += 1
+        end
+    end
+
+    return MSTMTransitionMatrix{Nₘₐₓ}(MSTMCluster(rᵥ, q_ext, q_sca, q_abs), 𝐓)
+end
+
+"""
+$(SIGNATURES)
+
 Write the T-Matrix to `filename` in the format expected by MSTM3.
 
-Note that in MSTM3, `TM = 1` and `TE = 2`, which is the opposite of our definition, so we need to use `3 - p` and `3 - q` here instead of `p` and `q`.
+Note that in MSTM3, `TM = 1` and `TE = 2`, which is the opposite of the definition in `TransitionMatrices.jl`.
 """
-function write_tmatrix(filename::String, tm::AbstractTMatrix)
-    lmax = size(tm)[1]
+function write_tmatrix(filename::String, 𝐓::AbstractTransitionMatrix{CT, N},
+                       shape::AbstractShape) where {CT, N}
     open(filename, "w") do io
-        @printf io "%4d%4d%4d\n" 0 lmax lmax
-        @printf io "%6d%13.5e\n" 0 volume_equivalent_radius(tm)
+        @printf io "%4d%4d%4d\n" 0 N N
+        @printf io "%6d%13.5e\n" 0 volume_equivalent_radius(shape)
 
-        for l in 1:lmax
-            for k in (-l):l
-                for q in 1:2
-                    @printf io "%5d%5d%5d\n" l k q
-                    for n in 1:l
+        for n′ in 1:N
+            for m′ in (-n′):n′
+                for p′ in 1:2
+                    @printf io "%5d%5d%5d\n" n′ m′ p′
+                    for n in 1:n′
                         for m in (-n):n
                             @printf(io, "%5d%5d%17.9e%17.9e%17.9e%17.9e\n", n, m,
-                                    real(tm[n, m, 2, l, k, 3 - q]),
-                                    imag(tm[n, m, 2, l, k, 3 - q]),
-                                    real(tm[n, m, 1, l, k, 3 - q]),
-                                    imag(tm[n, m, 1, l, k, 3 - q]))
+                                    real(𝐓[m, n, m′, n′, 2, 3 - p′]),
+                                    real(𝐓[m, n, m′, n′, 2, 3 - p′]),
+                                    imag(𝐓[m, n, m′, n′, 1, 3 - p′]),
+                                    imag(𝐓[m, n, m′, n′, 1, 3 - p′]))
                         end
                     end
                 end

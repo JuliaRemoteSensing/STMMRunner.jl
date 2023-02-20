@@ -1,0 +1,6 @@
+[deps]
+charset-normalizer = "3"
+python = "3.9"
+
+[pip.deps]
+smuthi = "@ git+https://gitlab.com/AmosEgel/smuthi.git"

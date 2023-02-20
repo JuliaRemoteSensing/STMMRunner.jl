@@ -4,26 +4,8 @@ authors = ["Gabriel Wu <wuzihua@pku.edu.cn> and contributors"]
 version = "0.1.0"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MSTM_jll = "2c0bff41-3d2c-5a3a-b138-70c96ef824a5"
-Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-RandomParticles = "45cae44c-514c-4cd4-a096-968165360565"
-Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
-TMatrix = "9e67e5fd-3814-4bd7-98fc-5a25e7f54401"
-UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
-julia = "1.7"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
+julia = "1.8"
+DocStringExtensions = "0.8, 0.9"

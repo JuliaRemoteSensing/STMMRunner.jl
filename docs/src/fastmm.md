@@ -1,5 +1,5 @@
-# FaSTMM
+# FaSTMMRunner
 
 ```@autodocs
-Modules = [STMMRunner.FaSTMM]
+Modules = [FaSTMMRunner]
 ```

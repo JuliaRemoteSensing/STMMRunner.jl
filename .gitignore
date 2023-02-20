@@ -5,6 +5,8 @@
 mstm_*
 /*.jl
 /notebooks/**/*.png
+/monorepo
+Manifest.toml
 gmt.history
 .ipynb_checkpoints
 .CondaPkg

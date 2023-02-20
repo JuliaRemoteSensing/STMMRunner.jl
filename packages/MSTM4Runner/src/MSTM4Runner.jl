@@ -1,4 +1,4 @@
-module V4
+module MSTM4Runner
 
 using MSTM_jll: mpiexec, mstm
 using DataFrames
@@ -6,7 +6,8 @@ using DocStringExtensions
 using Printf
 using Scanf
 using UUIDs
-using ...STMMRunner
+using Reexport: @reexport
+@reexport using STMMRunner
 export run_mstm
 
 abstract type MSTMOutput end
@@ -42,7 +43,7 @@ struct MSTMFixedOutput <: MSTMOutput
     q_scat_waveguide_parallel::Float64
     q_scat_waveguide_perpendicular::Float64
     scattering_matrix::DataFrame
-    near_field::Union{NearField,Nothing}
+    near_field::Union{NearField, Nothing}
 end
 
 struct MSTMLatticeOutput <: MSTMOutput
@@ -81,13 +82,14 @@ struct MSTMMonteCarloOutput <: MSTMOutput
 end
 
 """
-Use the given configuration to run MSTM v4.
-
 $(SIGNATURES)
+
+Use the given configuration to run MSTM v4.
 
 - If `keep = true`, the working directory will not be removed after the run. 
 """
-function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
+function run_mstm(cfg::STMMConfig; keep::Bool = false,
+                  mstm_command::Union{Cmd, Nothing} = nothing)
     current_dir = pwd()
 
     id = string(uuid1())
@@ -114,11 +116,11 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
         # We cannot simply do `$(mpiexec()) ... $(mstm())` here due to the limit of Cmd interpolation.
         # See https://github.com/JuliaLang/julia/issues/39282 for more details.
         @debug "[Run MSTM] Running MSTM..."
-        proc = open(isempty(mstm_command) ?
+        proc = open(isnothing(mstm_command) ?
                     setenv(`$(mpiexec().exec[1]) -n $(cfg.number_processors) $(mstm().exec[1])`,
-                mstm().env) : mstm_command,
-            cfg.redirect_stdout;
-            write=true)
+                           mstm().env) : mstm_command,
+                    cfg.redirect_stdout;
+                    write = true)
         wait(proc)
 
         @debug "[Run MSTM] Collecting MSTM output"
@@ -142,7 +144,7 @@ function run_mstm(cfg::STMMConfig; keep::Bool=false, mstm_command::Cmd=``)
         if !keep && occursin(String(id), dir)
             @assert ispath(dir)
             @debug "[Run MSTM] Removing temporary directory"
-            rm(dir; force=true, recursive=true)
+            rm(dir; force = true, recursive = true)
         end
 
         return results
@@ -235,7 +237,7 @@ function format_near_field(cfg::STMMConfig)::String
     $(cfg.near_field_expansion_spacing)
     near_field_expansion_order
     $(cfg.near_field_expansion_order)""" :
-                                      "")
+                "")
     else
         return "calculate_near_field\nfalse"
     end
@@ -325,7 +327,7 @@ end
 function collect_output(cfg::STMMConfig)::MSTMOutput
     @assert isfile(cfg.output_file)
 
-    out = split(read(open(cfg.output_file), String), "\n")
+    out = readlines(cfg.output_file)
     i = 1
 
     if cfg.orientation == FixedOrientation
@@ -365,37 +367,37 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
     if cfg.orientation == FixedOrientation
         if cfg.periodic
             # Lattice mode
-            q[1:9] = collect(@scanf out[i+1] "%e%e%e%e%e%e%e%e%e" zeros(9)...)[2:end]
+            q[1:9] = collect(@scanf out[i + 1] "%e%e%e%e%e%e%e%e%e" zeros(9)...)[2:end]
 
             i += 6
         elseif length(cfg.layers) == 1
             # One layer
 
             # Read total efficiencies
-            q[1:9] = read_floats(out[i+1])
+            q[1:9] = read_floats(out[i + 1])
             i += 2
 
             # Read hemispherical scattering efficiencies
-            q[10:15] = read_floats(out[i+1])
+            q[10:15] = read_floats(out[i + 1])
             i += 3
         else
             # Multiple layers
 
             # Read total efficiencies
-            q[1:9] = read_floats(out[i+1])
+            q[1:9] = read_floats(out[i + 1])
             i += 2
 
             # Read down/up extinction efficiencies
-            q[16:21] = read_floats(out[i+1])
+            q[16:21] = read_floats(out[i + 1])
             i += 2
 
             # Read hemispherical scattering efficiencies
-            q[10:15] = read_floats(out[i+1])
+            q[10:15] = read_floats(out[i + 1])
             i += 2
 
             # Read waveguide scattering efficiencies
             if occursin("waveguide", out[i])
-                q[22:24] = read_floats(out[i+1])
+                q[22:24] = read_floats(out[i + 1])
                 i += 3
             else
                 i += 1
@@ -414,7 +416,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         end
 
         # Read scattering matrix
-        while !isempty(out[i])
+        while i <= length(out)
             if occursin("transmission", out[i])
                 current_type = "transmission"
                 i += 2
@@ -433,7 +435,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
             push!(type, current_type)
 
-            # TODO: need to check whether lattice output can support θ instead kx-ky convention
+            # TODO: need to check whether lattice output can support theta instead kx-ky convention
             if cfg.scattering_map_model == 0 && !cfg.periodic
                 push!(θ, v[1])
             else
@@ -442,64 +444,64 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             end
 
             push!(s44, v[end])
-            push!(s43, v[end-1])
-            push!(s42, v[end-2])
-            push!(s41, v[end-3])
-            push!(s34, v[end-4])
-            push!(s33, v[end-5])
-            push!(s32, v[end-6])
-            push!(s31, v[end-7])
-            push!(s24, v[end-8])
-            push!(s23, v[end-9])
-            push!(s22, v[end-10])
-            push!(s21, v[end-11])
-            push!(s14, v[end-12])
-            push!(s13, v[end-13])
-            push!(s12, v[end-14])
-            push!(s11, v[end-15])
+            push!(s43, v[end - 1])
+            push!(s42, v[end - 2])
+            push!(s41, v[end - 3])
+            push!(s34, v[end - 4])
+            push!(s33, v[end - 5])
+            push!(s32, v[end - 6])
+            push!(s31, v[end - 7])
+            push!(s24, v[end - 8])
+            push!(s23, v[end - 9])
+            push!(s22, v[end - 10])
+            push!(s21, v[end - 11])
+            push!(s14, v[end - 12])
+            push!(s13, v[end - 13])
+            push!(s12, v[end - 14])
+            push!(s11, v[end - 15])
         end
 
         if cfg.scattering_map_model == 0 && !cfg.periodic
             scattering_matrix = DataFrame(;
-                θ,
-                s11,
-                s12,
-                s13,
-                s14,
-                s21,
-                s22,
-                s23,
-                s24,
-                s31,
-                s32,
-                s33,
-                s34,
-                s41,
-                s42,
-                s43,
-                s44,
-                type)
+                                          θ,
+                                          s11,
+                                          s12,
+                                          s13,
+                                          s14,
+                                          s21,
+                                          s22,
+                                          s23,
+                                          s24,
+                                          s31,
+                                          s32,
+                                          s33,
+                                          s34,
+                                          s41,
+                                          s42,
+                                          s43,
+                                          s44,
+                                          type)
         else
             scattering_matrix = DataFrame(;
-                kx,
-                ky,
-                s11,
-                s12,
-                s13,
-                s14,
-                s21,
-                s22,
-                s23,
-                s24,
-                s31,
-                s32,
-                s33,
-                s34,
-                s41,
-                s42,
-                s43,
-                s44,
-                type)
+                                          kx,
+                                          ky,
+                                          s11,
+                                          s12,
+                                          s13,
+                                          s14,
+                                          s21,
+                                          s22,
+                                          s23,
+                                          s24,
+                                          s31,
+                                          s32,
+                                          s33,
+                                          s34,
+                                          s41,
+                                          s42,
+                                          s43,
+                                          s44,
+                                          type)
         end
 
         if cfg.calculate_near_field && isfile(cfg.near_field_output_file)
@@ -511,16 +513,16 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             sz = Float64[]
             r = Float64[]
             for j in 1:Ns
-                v = read_floats(nf[j+3])
+                v = read_floats(nf[j + 3])
                 push!(sx, v[1])
                 push!(sy, v[2])
                 push!(sz, v[3])
                 push!(r, v[4])
             end
-            spheres = DataFrame(; x=sx, y=sy, z=sz, r)
+            spheres = DataFrame(; x = sx, y = sy, z = sz, r)
 
-            Nb = read_ints(nf[Ns+4])[1]
-            Nx, Ny, Nz = read_ints(nf[Ns+Nb+7])
+            Nb = read_ints(nf[Ns + 4])[1]
+            Nx, Ny, Nz = read_ints(nf[Ns + Nb + 7])
 
             # Read near field data
             x = Float64[]
@@ -538,8 +540,8 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             Hy⊥ = ComplexF64[]
             Hz₌ = ComplexF64[]
             Hz⊥ = ComplexF64[]
-            for j in 1:(Nx*Ny*Nz)
-                v = read_floats(nf[j+7+Ns+Nb])
+            for j in 1:(Nx * Ny * Nz)
+                v = read_floats(nf[j + 7 + Ns + Nb])
                 push!(x, v[1])
                 push!(y, v[2])
                 push!(z, v[3])
@@ -558,21 +560,21 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             end
 
             field = DataFrame(;
-                x,
-                y,
-                z,
-                Ex₌,
-                Ex⊥,
-                Ey₌,
-                Ey⊥,
-                Ez₌,
-                Ez⊥,
-                Hx₌,
-                Hx⊥,
-                Hy₌,
-                Hy⊥,
-                Hz₌,
-                Hz⊥)
+                              x,
+                              y,
+                              z,
+                              Ex₌,
+                              Ex⊥,
+                              Ey₌,
+                              Ey⊥,
+                              Ez₌,
+                              Ez⊥,
+                              Hx₌,
+                              Hx⊥,
+                              Hy₌,
+                              Hy⊥,
+                              Hz₌,
+                              Hz⊥)
 
             near_field = NearField(spheres, field)
         else
@@ -585,7 +587,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         # Random orientation, analytical average
 
         # Read efficiencies
-        q[1:3] = read_floats(out[i+1])
+        q[1:3] = read_floats(out[i + 1])
         i += 4
 
         # Read scattering matrix
@@ -594,7 +596,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
         if sm == 6
             for j in 1:Nθ
-                v = read_floats(out[i+j])
+                v = read_floats(out[i + j])
 
                 push!(θ, v[1])
                 push!(s11, v[2])
@@ -607,7 +609,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
             scattering_matrix = DataFrame(; θ, s11, s12, s22, s33, s34, s44)
         else
             for j in 1:Nθ
-                v = read_floats(out[i+j])
+                v = read_floats(out[i + j])
 
                 push!(θ, v[1])
                 push!(s11, v[2])
@@ -628,7 +630,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
                 push!(s44, v[17])
             end
             scattering_matrix = DataFrame(; θ, s11, s12, s13, s14, s21, s22, s23, s24, s31,
-                s32, s33, s34, s41, s42, s43, s44)
+                                          s32, s33, s34, s41, s42, s43, s44)
         end
 
         return MSTMRandomOutput(q..., scattering_matrix)
@@ -636,10 +638,10 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         # Random orientation, Monte Carlo
 
         # Read efficiencies
-        q[1:3] = read_floats(out[i+1])
+        q[1:3] = read_floats(out[i + 1])
         i += 2
 
-        q[4:9] = read_floats(out[i+1])
+        q[4:9] = read_floats(out[i + 1])
         i += 4
 
         # Read scattering matrix
@@ -647,7 +649,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         i += 1
 
         for j in 1:Nθ
-            v = read_floats(out[i+j])
+            v = read_floats(out[i + j])
             push!(θ, v[1])
             push!(s11, v[2])
             push!(s12, v[3])
@@ -668,7 +670,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         i += 1
 
         for j in 1:Nθ
-            v = read_floats(out[i+j])
+            v = read_floats(out[i + j])
             push!(θ, v[1])
             push!(s11, v[2])
             push!(s12, v[3])
@@ -682,7 +684,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
 
         i += Nθ + 1
         @assert occursin("azimuthal averaged scattering matrix expansion coefficients",
-            out[i])
+                         out[i])
         i += 2
 
         n = Int[]
@@ -693,7 +695,7 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         a22p = Float64[]
         a22m = Float64[]
 
-        while !isempty(out[i])
+        while i <= length(out)
             v = read_floats(out[i])
 
             push!(n, v[1])
@@ -708,12 +710,12 @@ function collect_output(cfg::STMMConfig)::MSTMOutput
         end
 
         scattering_matrix_expansion_coefficients = DataFrame(; n, a11, a44, a12, a34, a22p,
-            a22m)
+                                                             a22m)
 
         return MSTMMonteCarloOutput(q...,
-            scattering_matrix_azimuthal_average,
-            scattering_matrix_diffuse,
-            scattering_matrix_expansion_coefficients)
+                                    scattering_matrix_azimuthal_average,
+                                    scattering_matrix_diffuse,
+                                    scattering_matrix_expansion_coefficients)
     end
 end
 

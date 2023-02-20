@@ -1,0 +1,23 @@
+name = "MSTM4Runner"
+uuid = "fd83a0a4-5223-4bbc-b61e-d20f1d446444"
+authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
+version = "0.1.0"
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+MSTM_jll = "2c0bff41-3d2c-5a3a-b138-70c96ef824a5"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+STMMRunner = "5a832f93-9be3-4627-b47e-d2e960387a5d"
+Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+
+[compat]
+DataFrames = "1"
+DocStringExtensions = "0.8, 0.9"
+MSTM_jll = "4"
+Reexport = "1"
+STMMRunner = "0.1"
+Scanf = "0.5"
+julia = "1.8"

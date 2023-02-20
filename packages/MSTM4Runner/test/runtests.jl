@@ -1,7 +1,8 @@
-@testset "Test MSTM v4" begin
-    using STMMRunner
-    using STMMRunner.MSTM.V4
+using MSTM4Runner
+using MSTM4Runner.STMMRunner
+using Test
 
+@testset "MSTM4Runner.jl" begin
     sphere1 = Sphere(r = 1.0, x = 4.2, y = 4.3, z = 4.0, m = 1.5)
     sphere2 = Sphere(r = 1.0, x = 0.0, y = 0.3, z = 1.0, m = 1.5)
 

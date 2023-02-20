@@ -1,5 +1,5 @@
-# MSTM v3
+# MSTM3Runner
 
 ```@autodocs
-Modules = [STMMRunner.MSTM.V3]
+Modules = [MSTM3Runner]
 ```

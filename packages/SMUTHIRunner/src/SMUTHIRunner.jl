@@ -1,8 +1,8 @@
-module SMUTHI
+module SMUTHIRunner
 
 using CondaPkg
 using PythonCall
-using ..STMMRunner
+using STMMRunner
 
 const LAYERS = PythonCall.pynew()
 const SIMULATION = PythonCall.pynew()

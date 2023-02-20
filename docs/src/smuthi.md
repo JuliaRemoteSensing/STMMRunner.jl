@@ -1,5 +1,5 @@
-# SMUTHI
+# SMUTHIRunner
 
 ```@autodocs
-Modules = [STMMRunner.SMUTHI]
+Modules = [SMUTHIRunner]
 ```

@@ -1,9 +1,13 @@
-module FaSTMM
+module FaSTMMRunner
 
+export run_fastmm
+
+using DocStringExtensions
 using DataFrames: DataFrame
 using HDF5: h5open
 using UUIDs
-using ..STMMRunner
+using Reexport: @reexport
+@reexport using STMMRunner
 export run_fastmm
 
 struct FaSTMMOutput
@@ -13,6 +17,14 @@ struct FaSTMMOutput
     scattering_matrix::DataFrame
 end
 
+"""
+$(SIGNATURES)
+
+Use the given configuration to run FaSTMM.
+
+- If `keep = true`, the working directory will not be removed after the run. 
+- `fastmm_exe_name` specifies the name or path of your compiled FaSTMM executable.
+"""
 function run_fastmm(cfg::STMMConfig; keep::Bool = false, fastmm_exe_name::String = "FaSTMM")
     current_dir = pwd()
 

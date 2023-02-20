@@ -1,3 +1,7 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+FaSTMMRunner = "d9cb9cd8-68ce-459b-835c-d1d063edcaa6"
+MSTM3Runner = "5f129dbe-4c99-420f-990a-21e94701024b"
+MSTM4Runner = "fd83a0a4-5223-4bbc-b61e-d20f1d446444"
 STMMRunner = "5a832f93-9be3-4627-b47e-d2e960387a5d"
+TransitionMatrices = "057c4241-e127-4181-840e-6b4b92e6eef5"
