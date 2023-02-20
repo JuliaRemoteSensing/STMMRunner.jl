@@ -56,8 +56,7 @@ jobs:
         shell: julia --project=docs {0}
         run: |
           using Pkg;
-          pkg"add https://github.com/lucifer1004/TransitionMatrices.jl"
-          pkg"dev . ./packages/MSTM4Runner ./packages/MSTM3Runner ./packages/FaSTMMRunner"
+          pkg"dev . ./packages/MSTM4Runner ./packages/MSTM3Runner ./packages/FaSTMMRunner https://github.com/lucifer1004/TransitionMatrices.jl"
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
