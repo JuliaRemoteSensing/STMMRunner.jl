@@ -5,18 +5,21 @@
 [![Build Status](https://github.com/JuliaRemoteSensing/STMMRunner.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/JuliaRemoteSensing/STMMRunner.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/JuliaRemoteSensing/STMMRunner.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaRemoteSensing/STMMRunner.jl)
 
-General runner for multiple STMM models.
+[STMMRunner](https://github.com/JuliaRemoteSensing/STMMRunner.jl) provides a common configuration interface for several STMM (Superposition T-Matrix Method) codes. Since each runner package (they are listed below) reexports all the structs and methods defined in `STMMRunner`, you do not need to specify `STMMRunner` as a dependency. Instead, you should use the corresponding STMM code package directly.
 
 Currently supported STMM models:
 
-- [MSTM v4](https://github.com/dmckwski/MSTM)
-  - You **do not need** to compile MSTM v4 locally since there is already the `MSTM_jll` package.
+- [MSTM4Runner](@ref): wrapping [MSTM v4](https://github.com/dmckwski/MSTM)
+  - You **do not need** to compile `MSTM v4` locally since there is already the `MSTM_jll` package.
   - Lattice mode not supported yet.
-- [MSTM v3](https://www.eng.auburn.edu/~dmckwski/scatcodes/)
-  - You **need** to compile a parallel version of MSTM v3.
+- [MSTM3Runner](@ref): wrapping [MSTM v3](https://www.eng.auburn.edu/~dmckwski/scatcodes/)
+  - You **need** to compile a parallel version of `MSTM v3`.
+- [FaSTMMRunner](@ref): wrapping [FaSTMM](https://bitbucket.org/planetarysystemresearch/fastmm_v1.0)
+  - You **need** a compiled version of `FaSTMM`.
+- [SMUTHIRunner](@ref): wrapping [SMUTHI](https://gitlab.com/AmosEgel/smuthi)
+  - `SMUTHI` will be automatically installed via `CondaPkg`.
 
 Working in progress:
 
-- [FaSTMM](https://bitbucket.org/planetarysystemresearch/fastmm_v1.0)
 - [CELES](https://github.com/disordered-photonics/celes.git)
 - [TERMS](https://github.com/nano-optics/terms.git)
