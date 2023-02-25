@@ -1,9 +1,15 @@
+authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 name = "SMUTHIRunner"
 uuid = "1a3d0997-11af-4662-b0f1-0919688389c0"
-authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 version = "0.1.0"
 
 [deps]
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 STMMRunner = "5a832f93-9be3-4627-b47e-d2e960387a5d"
+
+[compat]
+CondaPkg = "0.2"
+PythonCall = "0.9"
+STMMRunner = "0.1"
+julia = "1.8"

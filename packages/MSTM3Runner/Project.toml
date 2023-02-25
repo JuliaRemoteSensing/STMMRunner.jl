@@ -1,6 +1,6 @@
+authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 name = "MSTM3Runner"
 uuid = "5f129dbe-4c99-420f-990a-21e94701024b"
-authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 version = "0.1.0"
 
 [deps]

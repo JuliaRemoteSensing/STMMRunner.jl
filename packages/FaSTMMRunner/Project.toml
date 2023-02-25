@@ -1,6 +1,6 @@
+authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 name = "FaSTMMRunner"
 uuid = "d9cb9cd8-68ce-459b-835c-d1d063edcaa6"
-authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 version = "0.1.0"
 
 [deps]
@@ -17,3 +17,4 @@ DocStringExtensions = "0.8, 0.9"
 HDF5 = "0.15, 0.16"
 Reexport = "1"
 STMMRunner = "0.1"
+julia = "1.8"
